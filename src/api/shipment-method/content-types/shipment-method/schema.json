@@ -1,0 +1,28 @@
+{
+  "kind": "collectionType",
+  "collectionName": "shipment_methods",
+  "info": {
+    "singularName": "shipment-method",
+    "pluralName": "shipment-methods",
+    "displayName": "shipmentMethod"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "description": {
+      "type": "text",
+      "required": true
+    },
+    "price": {
+      "type": "decimal",
+      "required": true,
+      "max": 0
+    }
+  }
+}

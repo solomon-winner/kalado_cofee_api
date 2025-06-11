@@ -1,0 +1,66 @@
+{
+  "kind": "collectionType",
+  "collectionName": "app_users",
+  "info": {
+    "singularName": "app-user",
+    "pluralName": "app-users",
+    "displayName": "app-user"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "email": {
+      "type": "email",
+      "required": true
+    },
+    "phone": {
+      "type": "string",
+      "required": true
+    },
+    "password": {
+      "type": "password",
+      "private": true,
+      "required": true,
+      "minLength": 6
+    },
+    "type": {
+      "type": "enumeration",
+      "default": "customer",
+      "enum": [
+        "customer",
+        "retailer",
+        "blogger"
+      ]
+    },
+    "products": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::product.product",
+      "mappedBy": "retailer"
+    },
+    "orders": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::order.order",
+      "mappedBy": "customer"
+    },
+    "blogs": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::blog.blog",
+      "mappedBy": "writer"
+    },
+    "customer_profile": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::customer-profile.customer-profile",
+      "mappedBy": "app_user"
+    }
+  }
+}

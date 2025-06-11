@@ -1,0 +1,55 @@
+{
+  "kind": "collectionType",
+  "collectionName": "shippment_addresses",
+  "info": {
+    "singularName": "shippment-address",
+    "pluralName": "shippment-addresses",
+    "displayName": "shippmentAddress"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "firstName": {
+      "type": "string",
+      "required": true
+    },
+    "lastName": {
+      "type": "string",
+      "required": true
+    },
+    "address1": {
+      "type": "string",
+      "required": true
+    },
+    "address2": {
+      "type": "string"
+    },
+    "zipcode": {
+      "type": "string"
+    },
+    "city": {
+      "type": "string"
+    },
+    "isDefault": {
+      "type": "boolean",
+      "default": false
+    },
+    "method": {
+      "type": "enumeration",
+      "default": "standard",
+      "enum": [
+        "standard",
+        "express",
+        "nextday"
+      ]
+    },
+    "customer": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::customer-profile.customer-profile",
+      "inversedBy": "shippment_addresses"
+    }
+  }
+}
