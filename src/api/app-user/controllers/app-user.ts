@@ -4,10 +4,10 @@
 
 import { factories } from '@strapi/strapi'
 import bcrypt from 'bcryptjs';
-// import { sanitize } from '@strapi/utils';
+import { appUserDTO } from '../../../utils/dto/app-user.dto';
 
 export default factories.createCoreController('api::app-user.app-user', ({ strapi }) => ({
-  
+
   async register(ctx) {
     const { email, password, name, phone } = ctx.request.body;
 
@@ -34,9 +34,7 @@ export default factories.createCoreController('api::app-user.app-user', ({ strap
       },
     });
 
-    // Optional: create a token or session here
-
-    return ctx.created({ user: newUser });
+    return ctx.created({ user: appUserDTO(newUser)});
   },
   
   async login(ctx) {
@@ -55,13 +53,12 @@ export default factories.createCoreController('api::app-user.app-user', ({ strap
     }
 
     const isValid = await bcrypt.compare(password, user.password);
-    console.log('isValid%%%%%%%%%%%%%%%%%%%%%%%%%%%%->',  user.password);
     if (!isValid) {
       return ctx.unauthorized('Invalid credentials');
     }
 
-  // Optional: create JWT or session
-    return ctx.send({ user });
+    const token = strapi.plugins['users-permissions'].services.jwt.issue({ id: user.id });
+    return ctx.send({ user: appUserDTO(user), accessToken: token });
   },
 
   async getUser(ctx) {
