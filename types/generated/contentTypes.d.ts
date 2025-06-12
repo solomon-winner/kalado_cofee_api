@@ -418,7 +418,7 @@ export interface ApiAppUserAppUser extends Struct.CollectionTypeSchema {
     singularName: 'app-user';
   };
   options: {
-    draftAndPublish: true;
+    draftAndPublish: false;
   };
   attributes: {
     blogs: Schema.Attribute.Relation<'oneToMany', 'api::blog.blog'>;

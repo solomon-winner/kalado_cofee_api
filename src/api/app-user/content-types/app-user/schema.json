@@ -7,7 +7,7 @@
     "displayName": "app-user"
   },
   "options": {
-    "draftAndPublish": true
+    "draftAndPublish": false
   },
   "pluginOptions": {},
   "attributes": {

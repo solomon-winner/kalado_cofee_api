@@ -4,5 +4,7 @@
 
 import { factories } from '@strapi/strapi';
 
-export default factories.createCoreRouter('api::app-user.app-user');
-
+export default factories.createCoreRouter('api::app-user.app-user', {
+  only: [], // Disable all auto-generated routes
+  config: {}
+});
