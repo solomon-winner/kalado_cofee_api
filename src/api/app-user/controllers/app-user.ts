@@ -5,6 +5,10 @@
 import { factories } from '@strapi/strapi'
 import bcrypt from 'bcryptjs';
 import { appUserDTO } from '../../../utils/dto/app-user.dto';
+import { verifyToken } from '../../../utils/dto/verify-token';
+import { generateToken } from '../../../utils/dto/generate-token';
+const { sanitize } = require('@strapi/utils');
+const { ValidationError, ApplicationError, ForbiddenError } = require('@strapi/utils').errors;
 
 export default factories.createCoreController('api::app-user.app-user', ({ strapi }) => ({
 
@@ -39,6 +43,7 @@ export default factories.createCoreController('api::app-user.app-user', ({ strap
   
   async login(ctx) {
     const { email, password } = ctx.request.body;
+    console.log("Login request body:", ctx.request.body);
     if (!email || !password) {
       return ctx.badRequest('Email and password are required');
     }
@@ -57,16 +62,48 @@ export default factories.createCoreController('api::app-user.app-user', ({ strap
       return ctx.unauthorized('Invalid credentials');
     }
 
-    const token = strapi.plugins['users-permissions'].services.jwt.issue({ id: user.id });
+    const token = generateToken(user);
     return ctx.send({ user: appUserDTO(user), accessToken: token });
   },
 
-  async getUser(ctx) {
+async getUser(ctx) {
   try {
-    ctx.body = "Ok"
-  } catch (error) {
-    ctx.body = "Error"
+    const decoded = verifyToken(ctx);
+    const user = await strapi.db.query('api::app-user.app-user').findOne({
+      where: { id: decoded.id },
+    });
+
+    if (!user) {
+      return ctx.notFound('User not found');
+    }
+
+    return ctx.send({ user: appUserDTO(user) });
+  } catch (err) {
+    strapi.log.error('Get user error:', err);
+    return ctx.unauthorized(err.message || 'Unauthorized');
   }
-  },
+},
+
+async updateme(ctx) {
+  try {
+    const decoded = verifyToken(ctx);
+    const userId = decoded.id;
+
+    const { phone, name } = ctx.request.body;
+    if (!phone || !name) {
+      throw new Error('Both name and phone are required');
+    }
+
+    const updatedUser = await strapi.entityService.update('api::app-user.app-user', userId, {
+      data: { phone, name },
+    });
+
+    return ctx.send({ user: appUserDTO(updatedUser) });
+  } catch (err) {
+    strapi.log.error('Update error:', err);
+    return ctx.unauthorized(err.message || 'Unauthorized');
+  }
+}
+
 
 }));

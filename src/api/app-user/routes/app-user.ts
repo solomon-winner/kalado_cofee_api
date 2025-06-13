@@ -1,10 +1,10 @@
-/**
- * app-user router
- */
+// /**
+//  * app-user router
+//  */
 
-import { factories } from '@strapi/strapi';
+// import { factories } from '@strapi/strapi';
 
-export default factories.createCoreRouter('api::app-user.app-user', {
-  only: [], // Disable all auto-generated routes
-  config: {}
-});
+// export default factories.createCoreRouter('api::app-user.app-user', {
+//   only: [], // Disable all auto-generated routes
+//   config: {}
+// });
