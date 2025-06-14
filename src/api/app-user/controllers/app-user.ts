@@ -7,8 +7,8 @@ import bcrypt from 'bcryptjs';
 import { appUserDTO } from '../../../utils/dto/app-user.dto';
 import { verifyToken } from '../../../utils/dto/verify-token';
 import { generateToken } from '../../../utils/dto/generate-token';
-const { sanitize } = require('@strapi/utils');
-const { ValidationError, ApplicationError, ForbiddenError } = require('@strapi/utils').errors;
+import crypto from 'crypto';
+
 
 export default factories.createCoreController('api::app-user.app-user', ({ strapi }) => ({
 
@@ -43,7 +43,6 @@ export default factories.createCoreController('api::app-user.app-user', ({ strap
   
   async login(ctx) {
     const { email, password } = ctx.request.body;
-    console.log("Login request body:", ctx.request.body);
     if (!email || !password) {
       return ctx.badRequest('Email and password are required');
     }
@@ -164,8 +163,6 @@ async changePassword(ctx) {
       return ctx.badRequest('New password must be different from the old one');
     }
 
-    // Hash new password
-    // const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     // Save new password
     await strapi.entityService.update('api::app-user.app-user', userId, {
@@ -179,6 +176,80 @@ async changePassword(ctx) {
     strapi.log.error('Change password error:', err);
     return ctx.unauthorized(err.message || 'Unauthorized');
   }
+},
+
+async forgotPassword(ctx) {
+  const { email } = ctx.request.body;
+
+  if (!email) {
+    return ctx.badRequest('Email is required');
+  }
+
+  const users = await strapi.db.query('api::app-user.app-user').findMany({
+    where: { email, deletedAt: null },
+  });
+
+  const user = users[0];
+
+  if (!user) {
+    // intended to not reveal that user doesn't exist
+    return ctx.send({ message: 'If your email is registered, you will receive a reset link.' });
+  }
+
+  // Generate token
+  const resetToken = crypto.randomBytes(32).toString('hex');
+  const expiry = new Date(Date.now() + 1000 * 60 * 30); // 30 minutes expiry
+
+  await strapi.entityService.update('api::app-user.app-user', user.id, {
+    data: {
+      resetPasswordToken: resetToken,
+      resetTokenExpiry: expiry,
+    },
+  });
+
+  // Send email (using your provider)
+  const resetLink = `https://kalado-coffee.vercel.app/reset-password?token=${resetToken}`;
+  await strapi.plugins['email'].services.email.send({
+    to: user.email,
+    subject: 'Reset your password',
+    text: `Click the following link to reset your password: ${resetLink}`,
+  });
+
+  return ctx.send({ message: 'If your email is registered, you will receive a reset link.' });
+},
+
+async resetPassword(ctx) {
+  const { token, newPassword } = ctx.request.body;
+
+  if (!token || !newPassword) {
+    return ctx.badRequest('Token and new password are required');
+  }
+
+  const users = await strapi.db.query('api::app-user.app-user').findMany({
+    where: {
+      resetPasswordToken: token,
+      resetTokenExpiry: { $gt: new Date() },
+      deletedAt: null,
+    },
+  });
+
+  const user = users[0];
+
+  if (!user) {
+    return ctx.badRequest('Invalid or expired token');
+  }
+
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+  await strapi.entityService.update('api::app-user.app-user', user.id, {
+    data: {
+      password: hashedPassword,
+      resetPasswordToken: null,
+      resetTokenExpiry: null,
+    },
+  });
+
+  return ctx.send({ message: 'Password reset successful' });
 }
 
 

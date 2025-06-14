@@ -65,6 +65,12 @@
      "deletedAt": {
       "type": "datetime",
       "default": null
+    },
+     "resetPasswordToken": {
+      "type": "string"
+    },
+    "resetTokenExpiry": {
+      "type": "datetime"
     }
   }
 }

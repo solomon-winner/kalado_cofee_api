@@ -448,6 +448,8 @@ export interface ApiAppUserAppUser extends Struct.CollectionTypeSchema {
     phone: Schema.Attribute.String & Schema.Attribute.Required;
     products: Schema.Attribute.Relation<'oneToMany', 'api::product.product'>;
     publishedAt: Schema.Attribute.DateTime;
+    resetPasswordToken: Schema.Attribute.String;
+    resetTokenExpiry: Schema.Attribute.DateTime;
     type: Schema.Attribute.Enumeration<['customer', 'retailer', 'blogger']> &
       Schema.Attribute.DefaultTo<'customer'>;
     updatedAt: Schema.Attribute.DateTime;
