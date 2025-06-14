@@ -61,6 +61,10 @@
       "relation": "oneToOne",
       "target": "api::customer-profile.customer-profile",
       "mappedBy": "app_user"
+    },
+     "deletedAt": {
+      "type": "datetime",
+      "default": null
     }
   }
 }

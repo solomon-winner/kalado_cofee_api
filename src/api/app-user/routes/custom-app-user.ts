@@ -32,5 +32,13 @@ export default {
         auth: false, 
       },
     },
+      {
+      method: 'DELETE',
+      path: '/app-users/deleteme',
+      handler: 'app-user.deleteme',
+      config: {
+        auth: false, 
+      },
+    },
   ],
 };

@@ -429,6 +429,7 @@ export interface ApiAppUserAppUser extends Struct.CollectionTypeSchema {
       'oneToOne',
       'api::customer-profile.customer-profile'
     >;
+    deletedAt: Schema.Attribute.DateTime;
     email: Schema.Attribute.Email & Schema.Attribute.Required;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<

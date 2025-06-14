@@ -48,7 +48,7 @@ export default factories.createCoreController('api::app-user.app-user', ({ strap
       return ctx.badRequest('Email and password are required');
     }
     const users = await strapi.entityService.findMany('api::app-user.app-user', {
-      filters: { email },
+      filters: { email, deletedAt: null },
     });
 
     const user = users[0];
@@ -70,7 +70,7 @@ async getUser(ctx) {
   try {
     const decoded = verifyToken(ctx);
     const user = await strapi.db.query('api::app-user.app-user').findOne({
-      where: { id: decoded.id },
+      where: { id: decoded.id, deletedAt: null},
     });
 
     if (!user) {
@@ -95,7 +95,7 @@ async updateme(ctx) {
     }
 
     const updatedUser = await strapi.entityService.update('api::app-user.app-user', userId, {
-      data: { phone, name },
+      data: { phone, name }, 
     });
 
     return ctx.send({ user: appUserDTO(updatedUser) });
@@ -103,7 +103,34 @@ async updateme(ctx) {
     strapi.log.error('Update error:', err);
     return ctx.unauthorized(err.message || 'Unauthorized');
   }
-}
+},
 
+async deleteme(ctx) {
+  try {
+    const decoded = verifyToken(ctx);
+    const userId = decoded.id;
+
+    // Check if user exists
+    const existingUser = await strapi.db.query('api::app-user.app-user').findOne({
+      where: { id: userId, deletedAt: null },
+    });
+
+    if (!existingUser) {
+      return ctx.notFound('User not found or already deleted');
+    }
+
+    // Soft delete by updating deletedAt
+    const deletedUser = await strapi.entityService.update('api::app-user.app-user', userId, {
+      data: {
+        deletedAt: new Date(),
+      },
+    });
+
+    return ctx.send({ message: 'User deleted successfully', user: appUserDTO(deletedUser) });
+  } catch (err) {
+    strapi.log.error('Soft delete user error:', err);
+    return ctx.unauthorized(err.message || 'Unauthorized');
+  }
+}
 
 }));
