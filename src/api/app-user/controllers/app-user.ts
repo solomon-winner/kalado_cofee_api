@@ -8,7 +8,7 @@ import { appUserDTO } from '../../../utils/dto/app-user.dto';
 import { verifyToken } from '../../../utils/dto/verify-token';
 import { generateToken } from '../../../utils/dto/generate-token';
 import crypto from 'crypto';
-
+import sendEmailService from '../../my-service/controllers/email-service';
 
 export default factories.createCoreController('api::app-user.app-user', ({ strapi }) => ({
 
@@ -190,7 +190,7 @@ async forgotPassword(ctx) {
   });
 
   const user = users[0];
-
+console.log("Forgot password for user-------------:", email, user);
   if (!user) {
     // intended to not reveal that user doesn't exist
     return ctx.send({ message: 'If your email is registered, you will receive a reset link.' });
@@ -209,11 +209,12 @@ async forgotPassword(ctx) {
 
   // Send email (using your provider)
   const resetLink = `https://kalado-coffee.vercel.app/reset-password?token=${resetToken}`;
-  await strapi.plugins['email'].services.email.send({
+    await sendEmailService.sendEmail({
     to: user.email,
     subject: 'Reset your password',
     text: `Click the following link to reset your password: ${resetLink}`,
   });
+
 
   return ctx.send({ message: 'If your email is registered, you will receive a reset link.' });
 },

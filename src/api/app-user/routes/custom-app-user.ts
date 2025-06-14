@@ -49,5 +49,21 @@ export default {
         auth: false, 
       },
     },
+    {
+      method: 'POST',
+      path: '/app-users/forgot-password',
+      handler: 'app-user.forgotPassword',
+      config: {
+        auth: false,
+      },
+    },
+    {
+      method: 'POST',
+      path: '/app-users/reset-password',
+      handler: 'app-user.resetPassword',
+      config: {
+        auth: false,
+      },
+    },
   ],
 };
