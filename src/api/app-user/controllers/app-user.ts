@@ -131,6 +131,55 @@ async deleteme(ctx) {
     strapi.log.error('Soft delete user error:', err);
     return ctx.unauthorized(err.message || 'Unauthorized');
   }
+},
+async changePassword(ctx) {
+  try {
+    const decoded = verifyToken(ctx); // Extract user ID from token
+    const userId = decoded.id;
+
+    const { currentPassword, newPassword } = ctx.request.body;
+
+    if (!currentPassword || !newPassword) {
+      return ctx.badRequest('Both current and new password are required');
+    }
+
+    // Fetch the user from DB
+    const user = await strapi.db.query('api::app-user.app-user').findOne({
+      where: { id: userId, deletedAt: null },
+    });
+
+    if (!user) {
+      return ctx.notFound('User not found');
+    }
+
+    // Verify current password
+    const isValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isValid) {
+      return ctx.unauthorized('Current password is incorrect');
+    }
+
+    // Optional: Prevent reuse of the same password
+    const isSamePassword = await bcrypt.compare(newPassword, user.password);
+    if (isSamePassword) {
+      return ctx.badRequest('New password must be different from the old one');
+    }
+
+    // Hash new password
+    // const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Save new password
+    await strapi.entityService.update('api::app-user.app-user', userId, {
+      data: {
+        password: newPassword,
+      },
+    });
+
+    return ctx.send({ message: 'Password changed successfully' });
+  } catch (err) {
+    strapi.log.error('Change password error:', err);
+    return ctx.unauthorized(err.message || 'Unauthorized');
+  }
 }
+
 
 }));

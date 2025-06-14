@@ -32,10 +32,19 @@ export default {
         auth: false, 
       },
     },
-      {
+    {
       method: 'DELETE',
       path: '/app-users/deleteme',
       handler: 'app-user.deleteme',
+      config: {
+        auth: false, 
+      },
+    },
+    ,
+    {
+      method: 'POST',
+      path: '/app-users/change-password',
+      handler: 'app-user.changePassword',
       config: {
         auth: false, 
       },
