@@ -3,16 +3,28 @@ import { verifyToken } from '../../../utils/dto/verify-token';
 export default {
   async getProduct(ctx) {
     try {
-      verifyToken(ctx);
+      const decoded = verifyToken(ctx);
       const { id } = ctx.params;
-      const product = await strapi.entityService.findOne('api::product.product', id);
 
-      if (!product) return ctx.notFound('Product not found');
+      const product = await strapi.db.query('api::product.product').findOne({
+        where: {
+          id,
+          retailer: decoded.id, // ensures only the owner can access it
+        },
+        populate: ['images', 'order_items'], // optionally populate relations
+      });
+
+      if (!product) {
+        return ctx.notFound('Product not found or not owned by you');
+      }
+
       return ctx.send(product);
     } catch (err) {
-      return ctx.badRequest(err.message);
+      strapi.log.error('Error in getProduct:', err);
+      return ctx.badRequest('Something went wrong');
     }
   },
+
 async getOrderItemsForProduct(ctx) {
   try {
     const decoded = verifyToken(ctx);
@@ -35,8 +47,10 @@ async getOrderItemsForProduct(ctx) {
 },
   async getProducts(ctx) {
     try {
-      verifyToken(ctx);
-      const products = await strapi.entityService.findMany('api::product.product');
+      const decoded = verifyToken(ctx);
+      const products = await strapi.entityService.findMany('api::product.product',{
+        filters: { retailer: decoded.id },
+      });
       return ctx.send(products);
     } catch (err) {
       return ctx.badRequest(err.message);
