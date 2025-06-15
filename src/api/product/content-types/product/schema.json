@@ -7,7 +7,7 @@
     "displayName": "product"
   },
   "options": {
-    "draftAndPublish": true
+    "draftAndPublish": false
   },
   "pluginOptions": {},
   "attributes": {
@@ -25,6 +25,10 @@
       "required": true,
       "min": "0"
     },
+    "description": {
+      "type": "text",
+      "required": true
+    },
     "discount": {
       "type": "decimal",
       "min": 0
@@ -35,17 +39,33 @@
       "target": "api::app-user.app-user",
       "inversedBy": "products"
     },
-    "orders": {
-      "type": "relation",
-      "relation": "manyToMany",
-      "target": "api::order.order",
-      "mappedBy": "products"
-    },
     "order_items": {
       "type": "relation",
       "relation": "oneToMany",
       "target": "api::order-item.order-item",
       "mappedBy": "product"
+    },
+    "isPopular": {
+      "type": "boolean",
+      "default": false
+    },
+    "properties": {
+      "type": "json"
+    },
+    "images": {
+      "type": "media",
+      "multiple": true,
+      "allowedTypes": ["images"]
+    },
+    "category": {
+      "type": "string"
+    },
+    "tags": {
+      "type": "json"
+    },
+    "deletedAt": {
+      "type": "datetime",
+      "default": null
     }
   }
 }

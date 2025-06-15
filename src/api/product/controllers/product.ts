@@ -1,7 +1,206 @@
-/**
- * product controller
- */
+import { verifyToken } from '../../../utils/dto/verify-token';
 
-import { factories } from '@strapi/strapi'
+export default {
+  async getProduct(ctx) {
+    try {
+      verifyToken(ctx);
+      const { id } = ctx.params;
+      const product = await strapi.entityService.findOne('api::product.product', id);
 
-export default factories.createCoreController('api::product.product');
+      if (!product) return ctx.notFound('Product not found');
+      return ctx.send(product);
+    } catch (err) {
+      return ctx.badRequest(err.message);
+    }
+  },
+async getOrderItemsForProduct(ctx) {
+  try {
+    const decoded = verifyToken(ctx);
+    const { productId } = ctx.params;
+
+    const product = await strapi.db.query('api::product.product').findOne({
+      where: { id: productId, retailer: decoded.id },
+    });
+
+    if (!product) return ctx.unauthorized('You do not own this product.');
+
+    const orderItems = await strapi.db.query('api::order-item.order-item').findMany({
+      where: { product: productId },
+    });
+
+    return ctx.send(orderItems);
+  } catch (err) {
+    return ctx.badRequest(err.message);
+  }
+},
+  async getProducts(ctx) {
+    try {
+      verifyToken(ctx);
+      const products = await strapi.entityService.findMany('api::product.product');
+      return ctx.send(products);
+    } catch (err) {
+      return ctx.badRequest(err.message);
+    }
+  },
+
+  async addProduct(ctx) {
+    try {
+      const decoded = verifyToken(ctx);
+      const data = ctx.request.body;
+      data.retailer = decoded.id;
+
+      const created = await strapi.entityService.create('api::product.product', { data });
+      return ctx.send(created);
+    } catch (err) {
+      return ctx.badRequest(err.message);
+    }
+  },
+
+  async addManyProducts(ctx) {
+    try {
+      const decoded = verifyToken(ctx);
+      const products = ctx.request.body;
+
+      const createdProducts = await Promise.all(
+        products.map(product =>
+          strapi.entityService.create('api::product.product', {
+            data: { ...product, retailer: decoded.id },
+          })
+        )
+      );
+
+      return ctx.send(createdProducts);
+    } catch (err) {
+      return ctx.badRequest(err.message);
+    }
+  },
+
+  async updateProduct(ctx) {
+    try {
+      const decoded = verifyToken(ctx);
+      const { id } = ctx.params;
+      const body = ctx.request.body;
+
+      const existing = await strapi.entityService.findOne('api::product.product', id);
+      if (!existing || existing.retailer !== decoded.id)
+        return ctx.unauthorized('Not allowed');
+
+      const updated = await strapi.entityService.update('api::product.product', id, {
+        data: body,
+      });
+
+      return ctx.send(updated);
+    } catch (err) {
+      return ctx.badRequest(err.message);
+    }
+  },
+
+  async deleteOneProduct(ctx) {
+    try {
+      const decoded = verifyToken(ctx);
+      const { id } = ctx.params;
+
+      const product = await strapi.entityService.findOne('api::product.product', id);
+      if (!product || product.retailer !== decoded.id)
+        return ctx.unauthorized('Not allowed');
+
+      await strapi.entityService.delete('api::product.product', id);
+      return ctx.send({ message: 'Deleted successfully' });
+    } catch (err) {
+      return ctx.badRequest(err.message);
+    }
+  },
+
+  async deleteManyProducts(ctx) {
+    try {
+      const decoded = verifyToken(ctx);
+      const { ids } = ctx.request.body;
+
+      const deleted = await Promise.all(
+        ids.map(async (id) => {
+          const product = await strapi.entityService.findOne('api::product.product', id,{
+            populate: { retailer: true }
+          });
+          if (product?.retailer === decoded.id) {
+            return strapi.entityService.delete('api::product.product', id);
+          }
+          return null;
+        })
+      );
+
+      return ctx.send({ message: 'Products deleted', count: deleted.length });
+    } catch (err) {
+      return ctx.badRequest(err.message);
+    }
+  },
+
+  async deleteWholeProductsOfRetailer(ctx) {
+    try {
+      const decoded = verifyToken(ctx);
+
+      const products = await strapi.db.query('api::product.product').findMany({
+        where: { retailer: decoded.id },
+        select: ['id'],
+      });
+
+      const ids = products.map(p => p.id);
+
+      await Promise.all(
+        ids.map(id => strapi.entityService.delete('api::product.product', id))
+      );
+
+      return ctx.send({ message: 'All products deleted' });
+    } catch (err) {
+      return ctx.badRequest(err.message);
+    }
+  },
+
+  async filter(ctx) {
+    try {
+      verifyToken(ctx);
+      const { minPrice, maxPrice } = ctx.query;
+
+      const products = await strapi.db.query('api::product.product').findMany({
+        where: {
+          price: {
+            $gte: Number(minPrice) || 0,
+            $lte: Number(maxPrice) || 99999,
+          },
+        },
+      });
+
+      return ctx.send(products);
+    } catch (err) {
+      return ctx.badRequest(err.message);
+    }
+  },
+
+  async statForRetailer(ctx) {
+    try {
+      const decoded = verifyToken(ctx);
+
+      const products = await strapi.db.query('api::product.product').findMany({
+        where: { retailer: decoded.id },
+        populate: ['order_items'],
+      });
+
+      const stats = products.map(p => ({
+        id: p.id,
+        name: p.name,
+        totalSold: p.order_items.length,
+      }));
+
+      const totalRevenue = products.reduce((sum, p) => {
+        return sum + p.order_items.reduce((acc, item) => acc + Number(item.price), 0);
+      }, 0);
+
+      return ctx.send({
+        totalProducts: products.length,
+        totalRevenue,
+        products: stats,
+      });
+    } catch (err) {
+      return ctx.badRequest(err.message);
+    }
+  },
+};

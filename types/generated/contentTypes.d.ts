@@ -603,7 +603,6 @@ export interface ApiOrderOrder extends Struct.CollectionTypeSchema {
       'api::order-item.order-item'
     >;
     orderedAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
-    products: Schema.Attribute.Relation<'manyToMany', 'api::product.product'>;
     publishedAt: Schema.Attribute.DateTime;
     total_amount: Schema.Attribute.Decimal & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
@@ -620,12 +619,15 @@ export interface ApiProductProduct extends Struct.CollectionTypeSchema {
     singularName: 'product';
   };
   options: {
-    draftAndPublish: true;
+    draftAndPublish: false;
   };
   attributes: {
+    category: Schema.Attribute.String;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    deletedAt: Schema.Attribute.DateTime;
+    description: Schema.Attribute.Text & Schema.Attribute.Required;
     discount: Schema.Attribute.Decimal &
       Schema.Attribute.SetMinMax<
         {
@@ -633,6 +635,8 @@ export interface ApiProductProduct extends Struct.CollectionTypeSchema {
         },
         number
       >;
+    images: Schema.Attribute.Media<'images', true>;
+    isPopular: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
@@ -644,7 +648,6 @@ export interface ApiProductProduct extends Struct.CollectionTypeSchema {
       'oneToMany',
       'api::order-item.order-item'
     >;
-    orders: Schema.Attribute.Relation<'manyToMany', 'api::order.order'>;
     price: Schema.Attribute.Decimal &
       Schema.Attribute.Required &
       Schema.Attribute.SetMinMax<
@@ -653,6 +656,7 @@ export interface ApiProductProduct extends Struct.CollectionTypeSchema {
         },
         number
       >;
+    properties: Schema.Attribute.JSON;
     publishedAt: Schema.Attribute.DateTime;
     quantity: Schema.Attribute.BigInteger &
       Schema.Attribute.Required &
@@ -663,6 +667,7 @@ export interface ApiProductProduct extends Struct.CollectionTypeSchema {
         string
       >;
     retailer: Schema.Attribute.Relation<'manyToOne', 'api::app-user.app-user'>;
+    tags: Schema.Attribute.JSON;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
