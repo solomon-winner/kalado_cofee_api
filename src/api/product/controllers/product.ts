@@ -74,66 +74,76 @@ async getOrderItemsForProduct(ctx) {
       return ctx.badRequest(err.message);
     }
   },
+async updateProduct(ctx) {
+  try {
+    const decoded = verifyToken(ctx);
+    const { id } = ctx.params;
+    const body = ctx.request.body;
 
-  async updateProduct(ctx) {
-    try {
-      const decoded = verifyToken(ctx);
-      const { id } = ctx.params;
-      const body = ctx.request.body;
+    const existing = await strapi.entityService.findOne('api::product.product', id, {
+      populate: { retailer: true }
+    }) as any;  // Temporary type workaround
 
-      const existing = await strapi.entityService.findOne('api::product.product', id);
-      if (!existing || existing.retailer !== decoded.id)
-        return ctx.unauthorized('Not allowed');
+    if (!existing || existing.retailer.id !== decoded.id)
+      return ctx.unauthorized('Not allowed');
 
-      const updated = await strapi.entityService.update('api::product.product', id, {
-        data: body,
-      });
+    const updated = await strapi.entityService.update('api::product.product', id, {
+      data: body,
+    });
 
-      return ctx.send(updated);
-    } catch (err) {
-      return ctx.badRequest(err.message);
-    }
-  },
+    return ctx.send(updated);
+  } catch (err) {
+    return ctx.badRequest(err.message);
+  }
+},
 
-  async deleteOneProduct(ctx) {
-    try {
-      const decoded = verifyToken(ctx);
-      const { id } = ctx.params;
+async deleteOneProduct(ctx) {
+  try {
+    const decoded = verifyToken(ctx);
+    const { id } = ctx.params;
 
-      const product = await strapi.entityService.findOne('api::product.product', id);
-      if (!product || product.retailer !== decoded.id)
-        return ctx.unauthorized('Not allowed');
+    const product = await strapi.entityService.findOne('api::product.product', id, {
+      populate: { retailer: true }
+    }) as any;  // Temporary type workaround
 
-      await strapi.entityService.delete('api::product.product', id);
-      return ctx.send({ message: 'Deleted successfully' });
-    } catch (err) {
-      return ctx.badRequest(err.message);
-    }
-  },
+    if (!product || product.retailer.id !== decoded.id)
+      return ctx.unauthorized('Not allowed');
 
-  async deleteManyProducts(ctx) {
-    try {
-      const decoded = verifyToken(ctx);
-      const { ids } = ctx.request.body;
+    await strapi.entityService.delete('api::product.product', id);
+    return ctx.send({ message: 'Deleted successfully' });
+  } catch (err) {
+    return ctx.badRequest(err.message);
+  }
+},
 
-      const deleted = await Promise.all(
-        ids.map(async (id) => {
-          const product = await strapi.entityService.findOne('api::product.product', id,{
-            populate: { retailer: true }
-          });
-          if (product?.retailer === decoded.id) {
-            return strapi.entityService.delete('api::product.product', id);
-          }
-          return null;
-        })
-      );
+async deleteManyProducts(ctx) {
+  try {
+    const decoded = verifyToken(ctx);
+    const { ids } = ctx.request.body;
 
-      return ctx.send({ message: 'Products deleted', count: deleted.length });
-    } catch (err) {
-      return ctx.badRequest(err.message);
-    }
-  },
+    const deletionResults = await Promise.all(
+      ids.map(async (id) => {
+        const product = await strapi.entityService.findOne('api::product.product', id, {
+          populate: { retailer: true }
+        }) as any;  // Temporary type workaround
 
+        if (product?.retailer?.id === decoded.id) {
+          await strapi.entityService.delete('api::product.product', id);
+          return true; // Mark successful deletion
+        }
+        return false;
+      })
+    );
+
+    const deletedCount = deletionResults.filter(result => result === true).length;
+    return ctx.send({ 
+      message: 'Products deleted', 
+      count: deletedCount 
+    });
+  } catch (err) {
+    return ctx.badRequest(err.message);
+  }
+},
   async deleteWholeProductsOfRetailer(ctx) {
     try {
       const decoded = verifyToken(ctx);
