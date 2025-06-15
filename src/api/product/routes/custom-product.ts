@@ -2,6 +2,31 @@ export default {
     routes: [
         { 
             method: 'GET', 
+            path: '/products/filter', 
+            handler: 'product.filter',
+            config: {
+                auth: false,
+            }
+        },
+        
+        { 
+            method: 'GET', 
+            path: '/products/stats', 
+            handler: 'product.statForRetailer',
+            config: {
+                auth: false,
+            }
+        },
+        {
+            method: 'GET',
+            path: '/products/retailer/:retailerId',
+            handler: 'product.getProductsByRetailer',
+            config: {
+                auth: false,
+            }
+        },
+        { 
+            method: 'GET', 
             path: '/products/:id', 
             handler: 'product.getProduct',
             config: {
@@ -49,7 +74,7 @@ export default {
             }
         },
         { 
-            method: 'DELETE', 
+            method: 'POST', 
             path: '/products/bulk/delete', 
             handler: 'product.deleteManyProducts',
             config: {
@@ -63,22 +88,6 @@ export default {
             config: {
                 auth: false,
             }
-        },
-        { 
-            method: 'GET', 
-            path: '/products/filter', 
-            handler: 'product.filter',
-            config: {
-                auth: false,
-            }
-        },
-        { 
-            method: 'GET', 
-            path: '/products/stats', 
-            handler: 'product.statForRetailer',
-            config: {
-                auth: false,
-            }
-        },
+        }
     ]
 };

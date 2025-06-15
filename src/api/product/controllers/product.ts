@@ -45,6 +45,7 @@ async getOrderItemsForProduct(ctx) {
     return ctx.badRequest(err.message);
   }
 },
+
   async getProducts(ctx) {
     try {
       const decoded = verifyToken(ctx);
@@ -134,7 +135,7 @@ async deleteManyProducts(ctx) {
   try {
     const decoded = verifyToken(ctx);
     const { ids } = ctx.request.body;
-
+    console.log('Deleting products with IDs:', ctx.request.body);
     const deletionResults = await Promise.all(
       ids.map(async (id) => {
         const product = await strapi.entityService.findOne('api::product.product', id, {
@@ -180,17 +181,43 @@ async deleteManyProducts(ctx) {
   },
 
   async filter(ctx) {
+
     try {
-      verifyToken(ctx);
-      const { minPrice, maxPrice } = ctx.query;
+      let userId = null;
+      let userRole = null;
+
+      // Check for token and decode it
+      try {
+        const decoded = verifyToken(ctx);
+        userId = decoded.id;
+        userRole = decoded.type; 
+        // assuming role is in the token
+      } catch (e) {
+        // No valid token: treat as public
+      }
+      const { minPrice, maxPrice, category, isPopular } = ctx.query;
+      
+      const filters: any = {
+        price: {
+          $gte: Number(minPrice) || 0,
+          $lte: Number(maxPrice) || 99999,
+        },
+        deletedAt: null, // exclude soft-deleted
+      };
+
+      // If user is a retailer, filter only their products
+      if (userId && userRole === 'retailer') {
+        filters.retailer = userId;
+      }
+
+      if (category) filters.category = category;
+      if (typeof isPopular !== 'undefined') {
+        filters.isPopular = isPopular === 'true';
+      }
 
       const products = await strapi.db.query('api::product.product').findMany({
-        where: {
-          price: {
-            $gte: Number(minPrice) || 0,
-            $lte: Number(maxPrice) || 99999,
-          },
-        },
+        where: filters,
+        orderBy: { createdAt: 'desc' }
       });
 
       return ctx.send(products);
@@ -199,6 +226,23 @@ async deleteManyProducts(ctx) {
     }
   },
 
+  //this for the customer to filter products by retailer
+  async getProductsByRetailer(ctx) {
+    try {
+      const decoded = verifyToken(ctx);
+      const { retailerId } = ctx.params;
+
+
+      const products = await strapi.db.query('api::product.product').findMany({
+        where: { retailer: retailerId },
+        populate: ['images', 'order_items'],
+      });
+
+      return ctx.send(products);
+    } catch (err) {
+      return ctx.badRequest(err.message);
+    }
+  },
   async statForRetailer(ctx) {
     try {
       const decoded = verifyToken(ctx);
