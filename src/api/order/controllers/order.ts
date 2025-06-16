@@ -1,45 +1,132 @@
-// /**
-//  * order controller
-//  */
+/**
+ * order controller
+ */
 
-// import { factories } from '@strapi/strapi'
-// import { verifyToken } from '../../../utils/dto/verify-token';
+import { factories } from '@strapi/strapi'
+import { verifyToken } from '../../../utils/dto/verify-token';
 
-// export default factories.createCoreController('api::order.order', ({ strapi }) => ({
-//   async placeOrder(ctx) {
-//     try {
-//       const decoded = verifyToken(ctx);
-//       const { orderItems, total_amount, shippment_address } = ctx.request.body;
+export default factories.createCoreController('api::order.order', ({ strapi }) => ({
+async addToCart(ctx) {
+  try {
+    const decoded = verifyToken(ctx); 
+    const userId = decoded.id;
 
-//       // Create order
-//       const order = await strapi.entityService.create('api::order.order', {
-//         data: {
-//           customer: decoded.id,
-//           total_amount,
-//           orderedAt: new Date(),
-//           shippment_address,
-//         },
-//       });
+    const { productId, quantity } = ctx.request.body;
+    if (!productId || !quantity) {
+      return ctx.badRequest("Product ID and quantity are required");
+    }
 
-//       // Create order items
-//       const createdItems = await Promise.all(
-//         orderItems.map(item => {
-//           return strapi.entityService.create('api::order-item.order-item', {
-//             data: {
-//               product: item.product,
-//               unitPrice: item.unitPrice,
-//               totalPrice: item.totalPrice,
-//               order: order.id,
-//             },
-//           });
-//         })
-//       );
+    // 1. Check product existence and stock
+    const product = await strapi.entityService.findOne("api::product.product", productId);
+    if (!product) return ctx.notFound("Product not found");
 
-//       return ctx.send({ order, orderItems: createdItems });
-//     } catch (err) {
-//       return ctx.badRequest(err.message);
-//     }
-//   },
+    if (product.quantity < quantity) {
+      return ctx.badRequest({
+        message: "Not enough stock available for this product",
+        productName: product?.name,
+      });
+    }
+
+    const unitPrice = product.price;
+    const totalPrice = unitPrice * quantity;
+
+    // 2. Check for existing pending order
+    let [pendingOrder] = await strapi.entityService.findMany("api::order.order", {
+      filters: {
+        customer: userId,
+        status: 'pending',
+      },
+      populate: {
+        order_items: { populate: ['product'] } // important for checking duplicates
+      }
+    }) as any[]; // Type assertion to handle the case where no orders are found
+
+    // 3. If no pending order, create one
+    if (!pendingOrder) {
+      pendingOrder = await strapi.entityService.create("api::order.order", {
+        data: {
+          customer: userId,
+          total_amount: totalPrice,
+          orderedAt: new Date().toISOString(),
+          status: "pending",
+        }
+      });
+    } else {
+      // 4. Check if product already exists in order_items
+      const existingOrderItem = pendingOrder.order_items.find(
+        (item) => item.product.id === productId
+      );
+
+      if (existingOrderItem) {
+        return ctx.badRequest("This product is already in your cart.");
+      }
+
+      // 5. Update total amount
+      await strapi.entityService.update("api::order.order", pendingOrder.id, {
+        data: {
+          total_amount: Number(pendingOrder.total_amount) + totalPrice,
+        }
+      });
+    }
+
+    // 6. Create the order item
+    const orderItem = await strapi.entityService.create("api::order-item.order-item", {
+      data: {
+        product: productId,
+        order: pendingOrder.id,
+        unitPrice,
+        quantity,
+        totalPrice,
+      }
+    });
+
+    return ctx.send({
+      message: 'Item added to cart (not confirmed until payment)',
+      orderId: pendingOrder.id,
+      orderItem,
+    });
+
+  } catch (err) {
+    console.error(err);
+    return ctx.badRequest(err.message || 'Something went wrong');
+  }
+},
+async getMyOrders(ctx) {
+  try {
+    const decoded = verifyToken(ctx);
+    const userId = decoded.id;
+    const { status } = ctx.query;
+
+    const filters: any = {
+      customer: userId,
+    };
+
+    if (status) {
+      filters.status = status;
+    }
+
+    const orders = await strapi.entityService.findMany("api::order.order", {
+      filters,
+      populate: {
+        order_items: {
+          populate: ['product'],
+        },
+        shippment_address: true,
+      },
+      sort: { orderedAt: 'desc' },
+    });
+
+    return ctx.send({
+      message: 'Orders retrieved successfully',
+      orders,
+    });
+  } catch (err) {
+    console.error(err);
+    return ctx.badRequest("Failed to fetch orders");
+  }
+}
+
+
 
 //   async getMyOrders(ctx) {
 //     try {
@@ -175,4 +262,4 @@
 //   }
 // }
 
-// }));
+}));
