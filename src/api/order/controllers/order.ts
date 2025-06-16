@@ -156,39 +156,6 @@ async getCartItems(ctx) {
   }
 },
 
-// async removeItemFromCart(ctx) {
-//   try {
-//     const decoded = verifyToken(ctx);
-//     const userId = decoded.id;
-//     const { orderItemId } = ctx.params;
-
-//     const orderItem = await strapi.entityService.findOne("api::order-item.order-item", orderItemId, {
-//       populate: {
-//         order: {
-//           populate: ['customer'], // deep populate the customer inside order
-//         },
-//       }
-//     });
-
-//     if (!orderItem || orderItem?.order.status !== 'pending' || orderItem.order.customer.id !== userId) {
-//       return ctx.badRequest("Invalid item");
-//     }
-
-//     await strapi.entityService.update("api::order.order", orderItem.order.id, {
-//       data: {
-//         total_amount: Number(orderItem.order.total_amount) - Number(orderItem.totalPrice),
-//       }
-//     });
-
-//     await strapi.entityService.delete("api::order-item.order-item", orderItemId);
-
-//     return ctx.send({ message: "Item removed from cart" });
-
-//   } catch (err) {
-//     return ctx.badRequest("Failed to remove item");
-//   }
-// },
-
 async updateItemInCart(ctx) {
   try {
     const decoded = verifyToken(ctx);
@@ -235,6 +202,56 @@ async updateItemInCart(ctx) {
   } catch (err) {
     console.error(err); // helpful in dev
     return ctx.badRequest("Update failed");
+  }
+},
+
+async removeItemFromCart(ctx) {
+  try {
+    const decoded = verifyToken(ctx);
+    const userId = decoded.id;
+    const { orderItemId } = ctx.params;
+
+    // Fetch the order item with its order, product, and customer
+    const orderItem = await strapi.entityService.findOne("api::order-item.order-item", orderItemId, {
+      populate: ['order', 'order.customer', 'product'],
+    }) as unknown as PopulatedOrderItem;
+
+    if (!orderItem?.order?.customer?.id || orderItem.order.customer.id !== userId) {
+      return ctx.badRequest("Invalid or unauthorized operation");
+    }
+
+    if (orderItem.order.status !== 'pending') {
+      return ctx.badRequest("Only pending orders can be modified");
+    }
+
+    // Step 1: Delete the item
+    await strapi.entityService.delete("api::order-item.order-item", orderItemId);
+
+    // Step 2: Re-fetch the order's current items (fresh from DB)
+    const orderItems = await strapi.entityService.findMany("api::order-item.order-item", {
+      filters: { order: { id: orderItem.order.id } },
+    });
+
+    if (orderItems.length === 0) {
+      // Step 3A: No more items in the order — delete the order too
+      await strapi.entityService.delete("api::order.order", orderItem.order.id);
+      return ctx.send({ message: "Item removed and empty order deleted" });
+    } else {
+      // Step 3B: Update the order's total
+      const updatedTotal = orderItems.reduce((sum, item) => sum + Number(item.totalPrice), 0);
+
+      await strapi.entityService.update("api::order.order", orderItem.order.id, {
+        data: {
+          total_amount: updatedTotal,
+        }
+      });
+
+      return ctx.send({ message: "Item removed from cart and total updated" });
+    }
+
+  } catch (err) {
+    console.error(err);
+    return ctx.badRequest("Failed to remove item from cart");
   }
 }
 

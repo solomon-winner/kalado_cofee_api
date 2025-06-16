@@ -31,6 +31,14 @@ export default {
             config: {
                 auth: false,
             }
+        },
+        {
+            method: 'DELETE',
+            path: '/order/cart/item/:orderItemId',
+            handler: 'order.removeItemFromCart',
+            config: {
+                auth: false,
+            }
         }
     ]
 }
