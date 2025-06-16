@@ -4,6 +4,7 @@
 
 import { factories } from '@strapi/strapi'
 import { verifyToken } from '../../../utils/dto/verify-token';
+import { PopulatedOrderItem } from '../type/order_schems_type'; // Adjust the import path as necessary
 
 export default factories.createCoreController('api::order.order', ({ strapi }) => ({
 async addToCart(ctx) {
@@ -124,8 +125,169 @@ async getMyOrders(ctx) {
     console.error(err);
     return ctx.badRequest("Failed to fetch orders");
   }
+},
+async getCartItems(ctx) {
+  try {
+    const decoded = verifyToken(ctx);
+    const userId = decoded.id;
+
+    const [pendingOrder] = await strapi.entityService.findMany("api::order.order", {
+      filters: {
+        customer: userId,
+        status: 'pending',
+      },
+      populate: {
+        order_items: {
+          populate: ['product'],
+        }
+      }
+    }) as any[]; // Type assertion to handle the case where no orders are found
+
+    if (!pendingOrder) return ctx.send({ message: "No items in cart", cart: [] });
+
+    return ctx.send({
+      message: "Your cart",
+      cart: pendingOrder.order_items,
+      totalAmount: pendingOrder.total_amount,
+    });
+
+  } catch (err) {
+    return ctx.badRequest("Failed to fetch cart");
+  }
+},
+
+// async removeItemFromCart(ctx) {
+//   try {
+//     const decoded = verifyToken(ctx);
+//     const userId = decoded.id;
+//     const { orderItemId } = ctx.params;
+
+//     const orderItem = await strapi.entityService.findOne("api::order-item.order-item", orderItemId, {
+//       populate: {
+//         order: {
+//           populate: ['customer'], // deep populate the customer inside order
+//         },
+//       }
+//     });
+
+//     if (!orderItem || orderItem?.order.status !== 'pending' || orderItem.order.customer.id !== userId) {
+//       return ctx.badRequest("Invalid item");
+//     }
+
+//     await strapi.entityService.update("api::order.order", orderItem.order.id, {
+//       data: {
+//         total_amount: Number(orderItem.order.total_amount) - Number(orderItem.totalPrice),
+//       }
+//     });
+
+//     await strapi.entityService.delete("api::order-item.order-item", orderItemId);
+
+//     return ctx.send({ message: "Item removed from cart" });
+
+//   } catch (err) {
+//     return ctx.badRequest("Failed to remove item");
+//   }
+// },
+
+async updateItemInCart(ctx) {
+  try {
+    const decoded = verifyToken(ctx);
+    const userId = decoded.id;
+    const { orderItemId } = ctx.params;
+    const { quantity } = ctx.request.body;
+
+    if (!quantity || quantity < 1) return ctx.badRequest("Quantity must be >= 1");
+
+    const orderItem = await strapi.entityService.findOne("api::order-item.order-item", orderItemId, {
+      populate: ['order', 'order.customer', 'product'],
+    }) as unknown as PopulatedOrderItem;
+
+    if (!orderItem?.order?.customer?.id || !orderItem?.product?.id) {
+      return ctx.badRequest("Invalid data from database");
+    }
+
+    if (orderItem.order.customer.id !== userId || orderItem.order.status !== 'pending') {
+      return ctx.badRequest("Invalid update");
+    }
+
+    if (!orderItem.product.quantity || orderItem.product.quantity < quantity) {
+      return ctx.badRequest("Not enough stock available");
+    }
+
+    const newTotalPrice = quantity * orderItem.unitPrice;
+    const totalDiff = newTotalPrice - orderItem.totalPrice;
+
+    await strapi.entityService.update("api::order.order", orderItem.order.id, {
+      data: {
+        total_amount: Number(orderItem.order.total_amount) + totalDiff,
+      }
+    });
+
+    await strapi.entityService.update("api::order-item.order-item", orderItemId, {
+      data: {
+        quantity,
+        totalPrice: newTotalPrice,
+      }
+    });
+
+    return ctx.send({ message: "Quantity updated" });
+
+  } catch (err) {
+    console.error(err); // helpful in dev
+    return ctx.badRequest("Update failed");
+  }
 }
 
+// async checkoutOrder(ctx) {
+//   try {
+//     const decoded = verifyToken(ctx);
+//     const userId = decoded.id;
+
+//     const [pendingOrder] = await strapi.entityService.findMany("api::order.order", {
+//       filters: {
+//         customer: userId,
+//         status: 'pending',
+//       },
+//     });
+
+//     if (!pendingOrder) return ctx.badRequest("No pending order to checkout");
+
+//     await strapi.entityService.update("api::order.order", pendingOrder.id, {
+//       data: {
+//         status: "confirmed",
+//         orderedAt: new Date().toISOString(),
+//       }
+//     });
+
+//     return ctx.send({ message: "Order confirmed and ready for payment", orderId: pendingOrder.id });
+
+//   } catch (err) {
+//     return ctx.badRequest("Checkout failed");
+//   }
+// },
+// async getOrderDetail(ctx) {
+//   try {
+//     const decoded = verifyToken(ctx);
+//     const userId = decoded.id;
+//     const { id } = ctx.params;
+
+//     const order = await strapi.entityService.findOne("api::order.order", id, {
+//       populate: {
+//         order_items: {
+//           populate: ['product'],
+//         },
+//         shippment_address: true,
+//       }
+//     });
+
+//     if (!order || order.customer.id !== userId) return ctx.unauthorized("Not your order");
+
+//     return ctx.send({ order });
+
+//   } catch (err) {
+//     return ctx.badRequest("Failed to get order detail");
+//   }
+// }
 
 
 //   async getMyOrders(ctx) {

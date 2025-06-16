@@ -1,13 +1,20 @@
-export interface PopulatedOrder {
+export interface PopulatedOrderItem {
   id: number;
-  total_amount: number;
-  order_items: {
+  quantity: number;
+  totalPrice: number;
+  unitPrice: number;
+  order: {
+    id: number;
+    status: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
+    total_amount: number;
+    customer: {
+      id: number;
+    };
+  };
+  product: {
     id: number;
     quantity: number;
-    product: {
-      id: number;
-      name: string;
-      price: number;
-    };
-  }[];
+    price: number;
+    name: string;
+  };
 }
