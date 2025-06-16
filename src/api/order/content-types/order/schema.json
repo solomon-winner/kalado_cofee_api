@@ -4,14 +4,13 @@
   "info": {
     "singularName": "order",
     "pluralName": "orders",
-    "displayName": "order"
+    "displayName": "Order"
   },
   "options": {
-    "draftAndPublish": true
+    "draftAndPublish": false
   },
   "pluginOptions": {},
   "attributes": {
-
     "customer": {
       "type": "relation",
       "relation": "manyToOne",
@@ -26,11 +25,43 @@
       "type": "datetime",
       "required": true
     },
+    "status": {
+      "type": "enumeration",
+      "enum": ["pending", "confirmed", "shipped", "delivered", "cancelled"],
+      "default": "pending"
+    },
+      "shippment_address": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::shippment-address.shippment-address"
+    },
+    "phoneNumber": {
+      "type": "string"
+    },
+    "deletedAt": {
+      "type": "datetime",
+      "default": null
+    },
     "order_items": {
       "type": "relation",
       "relation": "oneToMany",
       "target": "api::order-item.order-item",
       "mappedBy": "order"
-    }
+    },
+    
+  "paymentStatus": {
+    "type": "enumeration",
+    "enum": ["unpaid", "paid", "refunded"],
+    "default": "unpaid"
+  },
+  "paymentMethod": {
+    "type": "enumeration",
+    "enum": ["online", "COD"],
+    "default": "online"
+  },
+  "paidAt": {
+    "type": "datetime"
+  }
+
   }
 }

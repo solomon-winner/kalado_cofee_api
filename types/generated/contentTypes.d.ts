@@ -552,12 +552,12 @@ export interface ApiMessageMessage extends Struct.CollectionTypeSchema {
 export interface ApiOrderItemOrderItem extends Struct.CollectionTypeSchema {
   collectionName: 'order_items';
   info: {
-    displayName: 'orderItem';
+    displayName: 'Order Item';
     pluralName: 'order-items';
     singularName: 'order-item';
   };
   options: {
-    draftAndPublish: true;
+    draftAndPublish: false;
   };
   attributes: {
     createdAt: Schema.Attribute.DateTime;
@@ -572,6 +572,14 @@ export interface ApiOrderItemOrderItem extends Struct.CollectionTypeSchema {
     order: Schema.Attribute.Relation<'manyToOne', 'api::order.order'>;
     product: Schema.Attribute.Relation<'manyToOne', 'api::product.product'>;
     publishedAt: Schema.Attribute.DateTime;
+    quantity: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 1;
+        },
+        number
+      >;
     totalPrice: Schema.Attribute.Decimal & Schema.Attribute.Required;
     unitPrice: Schema.Attribute.Decimal & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
@@ -583,18 +591,19 @@ export interface ApiOrderItemOrderItem extends Struct.CollectionTypeSchema {
 export interface ApiOrderOrder extends Struct.CollectionTypeSchema {
   collectionName: 'orders';
   info: {
-    displayName: 'order';
+    displayName: 'Order';
     pluralName: 'orders';
     singularName: 'order';
   };
   options: {
-    draftAndPublish: true;
+    draftAndPublish: false;
   };
   attributes: {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     customer: Schema.Attribute.Relation<'manyToOne', 'api::app-user.app-user'>;
+    deletedAt: Schema.Attribute.DateTime;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<'oneToMany', 'api::order.order'> &
       Schema.Attribute.Private;
@@ -603,7 +612,23 @@ export interface ApiOrderOrder extends Struct.CollectionTypeSchema {
       'api::order-item.order-item'
     >;
     orderedAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    paidAt: Schema.Attribute.DateTime;
+    paymentMethod: Schema.Attribute.Enumeration<['online', 'COD']> &
+      Schema.Attribute.DefaultTo<'online'>;
+    paymentStatus: Schema.Attribute.Enumeration<
+      ['unpaid', 'paid', 'refunded']
+    > &
+      Schema.Attribute.DefaultTo<'unpaid'>;
+    phoneNumber: Schema.Attribute.String;
     publishedAt: Schema.Attribute.DateTime;
+    shippment_address: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::shippment-address.shippment-address'
+    >;
+    status: Schema.Attribute.Enumeration<
+      ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled']
+    > &
+      Schema.Attribute.DefaultTo<'pending'>;
     total_amount: Schema.Attribute.Decimal & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
@@ -736,6 +761,7 @@ export interface ApiShippmentAddressShippmentAddress
     >;
     firstName: Schema.Attribute.String & Schema.Attribute.Required;
     isDefault: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
+    isSaved: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     lastName: Schema.Attribute.String & Schema.Attribute.Required;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<

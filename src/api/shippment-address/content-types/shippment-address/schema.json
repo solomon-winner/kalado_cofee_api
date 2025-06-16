@@ -32,6 +32,10 @@
     "city": {
       "type": "string"
     },
+    "isSaved": {
+      "type": "boolean",
+      "default": false
+    },
     "isDefault": {
       "type": "boolean",
       "default": false
