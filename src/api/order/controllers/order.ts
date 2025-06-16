@@ -253,6 +253,61 @@ async removeItemFromCart(ctx) {
     console.error(err);
     return ctx.badRequest("Failed to remove item from cart");
   }
+},
+
+async checkoutOrder(ctx) {
+  try {
+    const decoded = verifyToken(ctx);
+    const userId = decoded.id;
+    const { orderId } = ctx.params;
+
+    // 1. Fetch the order and order_items
+    const order = await strapi.entityService.findOne("api::order.order", orderId, {
+      populate: ['order_items', 'customer', 'shippment_address'],
+    }) as any;
+
+    if (!order || order.customer.id !== userId || order.status !== 'pending') {
+      return ctx.badRequest("Invalid order");
+    }
+
+    // 2. Calculate base total from items
+    const baseTotal = order.order_items.reduce((sum, item) => sum + Number(item.totalPrice), 0);
+
+    // 3. Calculate tax, shipping, and discount dynamically
+    const shippingCost = 50; // You can also calculate based on address
+    const tax = baseTotal * 0.05; // 5% VAT
+    const discount = 0; // Add logic based on coupons or promo
+
+    const finalTotal = baseTotal + tax + shippingCost - discount;
+
+    // 4. Update order
+    const updatedOrder = await strapi.entityService.update("api::order.order", orderId, {
+      data: {
+        total_amount: baseTotal,
+        tax,
+        shippingCost,
+        discount,
+        finalTotal,
+      }
+    });
+
+    // 5. Return full summary to frontend
+    return ctx.send({
+      message: "Checkout summary",
+      summary: {
+        baseTotal,
+        shippingCost,
+        tax,
+        discount,
+        finalTotal,
+      },
+      orderId: order.id
+    });
+
+  } catch (err) {
+    console.error(err);
+    return ctx.badRequest("Checkout failed");
+  }
 }
 
 // async checkoutOrder(ctx) {
