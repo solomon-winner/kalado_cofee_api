@@ -5,6 +5,7 @@
 import { factories } from '@strapi/strapi'
 import { verifyToken } from '../../../utils/dto/verify-token';
 import { PopulatedOrderItem } from '../type/order_schems_type'; // Adjust the import path as necessary
+import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format, subMonths, subYears } from 'date-fns';
 
 export default factories.createCoreController('api::order.order', ({ strapi }) => ({
   //this is the controller for the order API intended for managing orders and cart items for customers
@@ -403,33 +404,135 @@ async getOrderById(ctx) {
     return ctx.badRequest("Failed to fetch order");
   }
 },
-async getStatistics(ctx) {
+
+
+async getOrderStatistics(ctx) {
   try {
     const decoded = verifyToken(ctx);
     const userId = decoded.id;
 
-    const totalOrders = await strapi.entityService.count("api::order.order", {
-      filters: { customer: userId },
+    // Dates for this month
+    const now = new Date();
+    const thisMonthStart = startOfMonth(now).toISOString();
+    const thisMonthEnd = endOfMonth(now).toISOString();
+
+    // Dates for last month
+    const lastMonth = subMonths(now, 1);
+    const lastMonthStart = startOfMonth(lastMonth).toISOString();
+    const lastMonthEnd = endOfMonth(lastMonth).toISOString();
+
+    // Helper function to compute stats
+    const computeStats = (orders) => ({
+      totalOrders: orders.length,
+      activeOrders: orders.filter(o => ['pending', 'shipped'].includes(o.status)).length,
+      completedOrders: orders.filter(o => o.status === 'delivered').length,
+      totalSoldAmount: orders
+        .filter(o => o.status === 'delivered')
+        .reduce((sum, o) => sum + Number(o.total_amount), 0)
     });
 
-    const orders = await strapi.entityService.findMany("api::order.order", {
-      filters: { customer: userId },
-      fields: ['total_amount'],
-      limit: 1000, // adjust as needed for your expected max orders
+    // Fetch orders for this month
+    const thisMonthOrders = await strapi.entityService.findMany("api::order.order", {
+      filters: {
+        retailer: userId,
+        orderedAt: { $gte: thisMonthStart, $lte: thisMonthEnd }
+      },
+      fields: ['status', 'total_amount']
     });
-    const totalSpent = orders.reduce((sum, order) => sum + Number(order.total_amount || 0), 0);
+
+    // Fetch orders for last month
+    const lastMonthOrders = await strapi.entityService.findMany("api::order.order", {
+      filters: {
+        retailer: userId,
+        orderedAt: { $gte: lastMonthStart, $lte: lastMonthEnd }
+      },
+      fields: ['status', 'total_amount']
+    });
+
+    const stats = {
+      thisMonth: computeStats(thisMonthOrders),
+      lastMonth: computeStats(lastMonthOrders),
+    };
 
     return ctx.send({
-      message: 'Order statistics retrieved successfully',
-      statistics: {
-        totalOrders,
-        totalSpent,
-      },
+      message: 'Statistics retrieved successfully',
+      stats
     });
+
   } catch (err) {
     console.error(err);
-    return ctx.badRequest("Failed to fetch order statistics");
+    return ctx.badRequest("Failed to retrieve order statistics");
   }
 },
+
+async getSalesReport(ctx) {
+  try {
+    const decoded = verifyToken(ctx);
+    const userId = decoded.id;
+    const { type } = ctx.request.query; // 'weekly', 'monthly', 'yearly'
+
+    const now = new Date();
+    let startDate: string;
+    let endDate: string;
+
+    // const filters = {
+    //   retailer: userId,
+    //   status: 'delivered'
+    // };
+
+    if (type === 'weekly') {
+      startDate = startOfWeek(now, { weekStartsOn: 1 }).toISOString(); // Monday
+      endDate = endOfWeek(now, { weekStartsOn: 1 }).toISOString();     // Sunday
+    } else if (type === 'monthly') {
+      startDate = startOfYear(now).toISOString();
+      endDate = endOfYear(now).toISOString();
+    } else if (type === 'yearly') {
+      const sixYearsAgo = subYears(now, 6);
+      startDate = startOfYear(sixYearsAgo).toISOString();
+      endDate = endOfYear(now).toISOString();
+    } else {
+      return ctx.badRequest("Invalid report type. Use ?type=weekly|monthly|yearly");
+    }
+
+    const deliveredOrders = await strapi.entityService.findMany("api::order.order", {
+      filters: {
+         retailer: userId,
+         status: 'delivered',
+        orderedAt: { $gte: startDate, $lte: endDate }
+      },
+      fields: ['total_amount', 'orderedAt'],
+      sort: [{ orderedAt: 'asc' }]
+    });
+
+    // Grouping Logic
+    const groupedSales: Record<string, number> = {};
+
+    for (const order of deliveredOrders) {
+      const date = new Date(order.orderedAt);
+      let key: string;
+
+      if (type === 'weekly') {
+        key = format(date, 'EEEE'); // Monday, Tuesday, etc.
+      } else if (type === 'monthly') {
+        key = format(date, 'MMMM'); // January, February, etc.
+      } else if (type === 'yearly') {
+        key = format(date, 'yyyy'); // 2020, 2021, etc.
+      }
+
+      if (!groupedSales[key]) groupedSales[key] = 0;
+      groupedSales[key] += Number(order.total_amount);
+    }
+
+    return ctx.send({
+      message: `Sales report (${type})`,
+      report: groupedSales
+    });
+
+  } catch (err) {
+    console.error(err);
+    return ctx.badRequest("Failed to generate sales report");
+  }
+}
+
 }));
 

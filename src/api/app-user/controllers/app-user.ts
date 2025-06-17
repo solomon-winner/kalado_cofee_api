@@ -190,7 +190,6 @@ async forgotPassword(ctx) {
   });
 
   const user = users[0];
-console.log("Forgot password for user-------------:", email, user);
   if (!user) {
     // intended to not reveal that user doesn't exist
     return ctx.send({ message: 'If your email is registered, you will receive a reset link.' });
