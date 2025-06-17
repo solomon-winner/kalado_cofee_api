@@ -313,11 +313,10 @@ async checkoutOrder(ctx) {
 async getRetailerOrders(ctx) {},
 async getRetailerOrderDetails(ctx) {},
 async updateRetailerOrderStatus(ctx) {},
-async confirmedOrder(ctx) {},
+async getconfirmedOrder(ctx) {},
 async recentPurchases(ctx) {},
 async getOrderByStatus(ctx) {},
 async getOrderById(ctx) {},
 async getStatistics(ctx) {},
-
 }));
 

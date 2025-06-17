@@ -62,15 +62,20 @@
       "target": "api::customer-profile.customer-profile",
       "mappedBy": "app_user"
     },
-     "deletedAt": {
-      "type": "datetime",
-      "default": null
+    "deletedAt": {
+      "type": "datetime"
     },
-     "resetPasswordToken": {
+    "resetPasswordToken": {
       "type": "string"
     },
     "resetTokenExpiry": {
       "type": "datetime"
+    },
+    "retailer_orders": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::order.order",
+      "mappedBy": "retailer"
     }
   }
 }

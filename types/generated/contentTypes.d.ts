@@ -450,6 +450,7 @@ export interface ApiAppUserAppUser extends Struct.CollectionTypeSchema {
     publishedAt: Schema.Attribute.DateTime;
     resetPasswordToken: Schema.Attribute.String;
     resetTokenExpiry: Schema.Attribute.DateTime;
+    retailer_orders: Schema.Attribute.Relation<'oneToMany', 'api::order.order'>;
     type: Schema.Attribute.Enumeration<['customer', 'retailer', 'blogger']> &
       Schema.Attribute.DefaultTo<'customer'>;
     updatedAt: Schema.Attribute.DateTime;
@@ -621,6 +622,7 @@ export interface ApiOrderOrder extends Struct.CollectionTypeSchema {
       Schema.Attribute.DefaultTo<'unpaid'>;
     phoneNumber: Schema.Attribute.String;
     publishedAt: Schema.Attribute.DateTime;
+    retailer: Schema.Attribute.Relation<'manyToOne', 'api::app-user.app-user'>;
     shippment_address: Schema.Attribute.Relation<
       'manyToOne',
       'api::shippment-address.shippment-address'

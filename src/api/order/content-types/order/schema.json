@@ -17,6 +17,12 @@
       "target": "api::app-user.app-user",
       "inversedBy": "orders"
     },
+    "retailer": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::app-user.app-user",
+      "inversedBy": "retailer_orders"
+    },
     "total_amount": {
       "type": "decimal",
       "required": true
@@ -27,10 +33,16 @@
     },
     "status": {
       "type": "enumeration",
-      "enum": ["pending", "confirmed", "shipped", "delivered", "cancelled"],
-      "default": "pending"
+      "default": "pending",
+      "enum": [
+        "pending",
+        "confirmed",
+        "shipped",
+        "delivered",
+        "cancelled"
+      ]
     },
-      "shippment_address": {
+    "shippment_address": {
       "type": "relation",
       "relation": "manyToOne",
       "target": "api::shippment-address.shippment-address"
@@ -39,8 +51,7 @@
       "type": "string"
     },
     "deletedAt": {
-      "type": "datetime",
-      "default": null
+      "type": "datetime"
     },
     "order_items": {
       "type": "relation",
@@ -48,20 +59,25 @@
       "target": "api::order-item.order-item",
       "mappedBy": "order"
     },
-    
-  "paymentStatus": {
-    "type": "enumeration",
-    "enum": ["unpaid", "paid", "refunded"],
-    "default": "unpaid"
-  },
-  "paymentMethod": {
-    "type": "enumeration",
-    "enum": ["online", "COD"],
-    "default": "online"
-  },
-  "paidAt": {
-    "type": "datetime"
-  }
-
+    "paymentStatus": {
+      "type": "enumeration",
+      "default": "unpaid",
+      "enum": [
+        "unpaid",
+        "paid",
+        "refunded"
+      ]
+    },
+    "paymentMethod": {
+      "type": "enumeration",
+      "default": "online",
+      "enum": [
+        "online",
+        "COD"
+      ]
+    },
+    "paidAt": {
+      "type": "datetime"
+    }
   }
 }
