@@ -39,6 +39,55 @@ export default {
             config: {
                 auth: false,
             }
-        }
+        },
+        {
+            method: 'POST',
+            path: '/order/cart/checkout',
+            handler: 'order.checkout',
+            config: {
+                auth: false,
+            }
+        },
+        // Custom route to get for retailers
+        {
+            method: 'PUT',
+            path: '/order/:orderItemId',
+            handler: 'order.updateRetailerOrderStatus',
+            config: {
+                auth: false,
+            }
+        },
+        {
+            method: 'GET',
+            path: '/order/recent-purchases',
+            handler: 'order.recentPurchases',
+            config: {
+                auth: false,
+            }
+        },
+                {
+            method: 'GET',
+            path: '/order/order-stat',
+            handler: 'order.getOrderStatistics',
+            config: {
+                auth: false,
+            }
+        },
+        {
+           method: 'GET',
+           path: '/order/:orderItemId',
+           handler: 'order.getOrderDetails',
+           config: {
+               auth: false,
+           }
+        },
+        {
+           method: 'GET',
+           path: '/order/report',
+           handler: 'order.getSalesReport',
+           config: {
+               auth: false,
+           }
+        },
     ]
 }
