@@ -312,7 +312,42 @@ async checkoutOrder(ctx) {
 // this is the controller for the order API intended for managing orders and cart items for retailers
 
 // async getRetailerOrderDetails(ctx) {},
-async updateRetailerOrderStatus(ctx) {},
+async updateRetailerOrderStatus(ctx) {
+  try {
+    const decoded = verifyToken(ctx);
+    const userId = decoded.id;
+    const { orderId } = ctx.params;
+    const { status } = ctx.request.body;
+
+    // Validate status
+    if (!['confirmed', 'shipped', 'delivered'].includes(status)) {
+      return ctx.badRequest("Invalid status");
+    }
+
+    // Fetch the order
+    const order = await strapi.entityService.findOne("api::order.order", orderId, {
+      populate: ['retailer'],
+    }) as any;
+
+    if (!order || order.retailer.id !== userId) {
+      return ctx.unauthorized("You are not authorized to update this order");
+    }
+
+    // Update the order status
+    const updatedOrder = await strapi.entityService.update("api::order.order", orderId, {
+      data: { status },
+    });
+
+    return ctx.send({
+      message: "Order status updated successfully",
+      order: updatedOrder,
+    });
+
+  } catch (err) {
+    console.error(err);
+    return ctx.badRequest("Failed to update order status");
+  }
+},
 // async getconfirmedOrder(ctx) {},
 async recentPurchases(ctx) {
   try {
@@ -343,7 +378,58 @@ async recentPurchases(ctx) {
     return ctx.badRequest("Failed to fetch recent purchases");
   }
 },
-async getOrderById(ctx) {},
-async getStatistics(ctx) {},
+async getOrderById(ctx) {
+  try {
+    const { id } = ctx.params;
+
+    const order = await strapi.entityService.findOne("api::order.order", id, {
+      populate: {
+        order_items: {
+          populate: ['product'],
+        },
+      },
+    });
+
+    if (!order) {
+      return ctx.notFound("Order not found");
+    }
+
+    return ctx.send({
+      message: 'Order retrieved successfully',
+      order,
+    });
+  } catch (err) {
+    console.error(err);
+    return ctx.badRequest("Failed to fetch order");
+  }
+},
+async getStatistics(ctx) {
+  try {
+    const decoded = verifyToken(ctx);
+    const userId = decoded.id;
+
+    const totalOrders = await strapi.entityService.count("api::order.order", {
+      filters: { customer: userId },
+    });
+
+    const orders = await strapi.entityService.findMany("api::order.order", {
+      filters: { customer: userId },
+      fields: ['total_amount'],
+      limit: 1000, // adjust as needed for your expected max orders
+    });
+    const totalSpent = orders.reduce((sum, order) => sum + Number(order.total_amount || 0), 0);
+
+    return ctx.send({
+      message: 'Order statistics retrieved successfully',
+      statistics: {
+        totalOrders,
+        totalSpent,
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    return ctx.badRequest("Failed to fetch order statistics");
+  }
+},
 }));
 
