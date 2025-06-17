@@ -70,7 +70,7 @@ async getOrderItemsForProduct(ctx) {
       return ctx.badRequest(err.message);
     }
   },
-
+  async addProductWithImages(ctx) {},
   async addManyProducts(ctx) {
     try {
       const decoded = verifyToken(ctx);
@@ -271,4 +271,6 @@ async deleteManyProducts(ctx) {
       return ctx.badRequest(err.message);
     }
   },
+
+
 };

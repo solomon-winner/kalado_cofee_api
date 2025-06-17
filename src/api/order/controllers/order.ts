@@ -13,7 +13,8 @@ async addToCart(ctx) {
     const decoded = verifyToken(ctx); 
     const userId = decoded.id;
 
-    const { productId, quantity } = ctx.request.body;
+    const { productId, quantity } = ctx.request.body; 
+    // receive the retailer id from the client and check if it exists in the database and that product belongs to the retailer
     if (!productId || !quantity) {
       return ctx.badRequest("Product ID and quantity are required");
     }
@@ -111,7 +112,7 @@ async getMyOrders(ctx) {
       filters,
       populate: {
         order_items: {
-          populate: ['product'],
+          populate: ['product'], // add retailers here
         },
         shippment_address: true,
       },
@@ -310,12 +311,38 @@ async checkoutOrder(ctx) {
 
 // this is the controller for the order API intended for managing orders and cart items for retailers
 
-async getRetailerOrders(ctx) {},
-async getRetailerOrderDetails(ctx) {},
+// async getRetailerOrderDetails(ctx) {},
 async updateRetailerOrderStatus(ctx) {},
-async getconfirmedOrder(ctx) {},
-async recentPurchases(ctx) {},
-async getOrderByStatus(ctx) {},
+// async getconfirmedOrder(ctx) {},
+async recentPurchases(ctx) {
+  try {
+    const decoded = verifyToken(ctx);
+    const userId = decoded.id;
+
+    const limit = parseInt(typeof ctx.query.limit === 'string' ? ctx.query.limit : '') || 5; // Default to 5 recent orders
+    const orders = await strapi.entityService.findMany("api::order.order", {
+      filters: {
+        customer: userId,
+      },
+      sort: [{ orderedAt: 'desc' }],
+      limit,
+      populate: {
+        order_items: {
+          populate: ['product'],
+        },
+      },
+    });
+
+    return ctx.send({
+      message: 'Recent purchases retrieved successfully',
+      orders,
+    });
+
+  } catch (err) {
+    console.error(err);
+    return ctx.badRequest("Failed to fetch recent purchases");
+  }
+},
 async getOrderById(ctx) {},
 async getStatistics(ctx) {},
 }));
