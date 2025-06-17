@@ -7,6 +7,7 @@ import { verifyToken } from '../../../utils/dto/verify-token';
 import { PopulatedOrderItem } from '../type/order_schems_type'; // Adjust the import path as necessary
 
 export default factories.createCoreController('api::order.order', ({ strapi }) => ({
+  //this is the controller for the order API intended for managing orders and cart items for customers
 async addToCart(ctx) {
   try {
     const decoded = verifyToken(ctx); 
@@ -155,7 +156,6 @@ async getCartItems(ctx) {
     return ctx.badRequest("Failed to fetch cart");
   }
 },
-
 async updateItemInCart(ctx) {
   try {
     const decoded = verifyToken(ctx);
@@ -204,7 +204,6 @@ async updateItemInCart(ctx) {
     return ctx.badRequest("Update failed");
   }
 },
-
 async removeItemFromCart(ctx) {
   try {
     const decoded = verifyToken(ctx);
@@ -254,7 +253,6 @@ async removeItemFromCart(ctx) {
     return ctx.badRequest("Failed to remove item from cart");
   }
 },
-
 async checkoutOrder(ctx) {
   try {
     const decoded = verifyToken(ctx);
@@ -308,192 +306,18 @@ async checkoutOrder(ctx) {
     console.error(err);
     return ctx.badRequest("Checkout failed");
   }
-}
+},
 
-// async checkoutOrder(ctx) {
-//   try {
-//     const decoded = verifyToken(ctx);
-//     const userId = decoded.id;
+// this is the controller for the order API intended for managing orders and cart items for retailers
 
-//     const [pendingOrder] = await strapi.entityService.findMany("api::order.order", {
-//       filters: {
-//         customer: userId,
-//         status: 'pending',
-//       },
-//     });
-
-//     if (!pendingOrder) return ctx.badRequest("No pending order to checkout");
-
-//     await strapi.entityService.update("api::order.order", pendingOrder.id, {
-//       data: {
-//         status: "confirmed",
-//         orderedAt: new Date().toISOString(),
-//       }
-//     });
-
-//     return ctx.send({ message: "Order confirmed and ready for payment", orderId: pendingOrder.id });
-
-//   } catch (err) {
-//     return ctx.badRequest("Checkout failed");
-//   }
-// },
-// async getOrderDetail(ctx) {
-//   try {
-//     const decoded = verifyToken(ctx);
-//     const userId = decoded.id;
-//     const { id } = ctx.params;
-
-//     const order = await strapi.entityService.findOne("api::order.order", id, {
-//       populate: {
-//         order_items: {
-//           populate: ['product'],
-//         },
-//         shippment_address: true,
-//       }
-//     });
-
-//     if (!order || order.customer.id !== userId) return ctx.unauthorized("Not your order");
-
-//     return ctx.send({ order });
-
-//   } catch (err) {
-//     return ctx.badRequest("Failed to get order detail");
-//   }
-// }
-
-
-//   async getMyOrders(ctx) {
-//     try {
-//       const decoded = verifyToken(ctx);
-//       const orders = await strapi.entityService.findMany('api::order.order', {
-//         filters: { customer: decoded.id },
-//         populate: ['order_items', 'order_items.product', 'shippment_address'],
-//       });
-
-//       return ctx.send(orders);
-//     } catch (err) {
-//       return ctx.badRequest(err.message);
-//     }
-//   },
-
-//   async getRetailerOrders(ctx) {
-//     try {
-//       const decoded = verifyToken(ctx);
-//       if (decoded.type !== 'retailer') return ctx.unauthorized('Only retailers allowed');
-
-//       // Get all orders that include items with this retailer's products
-//       const orderItems = await strapi.entityService.findMany('api::order-item.order-item', {
-//         filters: {
-//           product: {
-//             retailer: decoded.id
-//           }
-//         },
-//         populate: ['product', 'order', 'order.shippment_address', 'order.customer']
-//       });
-
-//       return ctx.send(orderItems);
-//     } catch (err) {
-//       return ctx.badRequest(err.message);
-//     }
-//   },
-
-//   async getOrderById(ctx) {
-//     try {
-//       const decoded = verifyToken(ctx);
-//       const { id } = ctx.params;
-
-//       const order = await strapi.entityService.findOne('api::order.order', id, {
-//         populate: ['customer', 'order_items', 'order_items.product', 'shippment_address']
-//       });
-
-//       if (!order) return ctx.notFound('Order not found');
-
-//       // Allow access only if customer is owner or retailer owns a product in it
-//       const isCustomer = order.customer?.id === decoded.id;
-//       const isRetailer = order.order_items.some(item => item.product?.retailer === decoded.id);
-
-//       if (!(isCustomer || isRetailer)) return ctx.unauthorized('Access denied');
-
-//       return ctx.send(order);
-//     } catch (err) {
-//       return ctx.badRequest(err.message);
-//     }
-//   },
-
-//   async updateOrderStatus(ctx) {
-//   try {
-//     const decoded = verifyToken(ctx); // Ensure token contains user `id` and `type`
-//     const { id } = ctx.params; // Order ID
-//     const { status: newStatus } = ctx.request.body;
-
-//     const allowedStatuses = ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'];
-//     if (!allowedStatuses.includes(newStatus)) {
-//       return ctx.badRequest('Invalid status');
-//     }
-
-//     const order = await strapi.entityService.findOne('api::order.order', id, {
-//       populate: {
-//         order_items: {
-//           populate: ['product']
-//         },
-//         customer: true
-//       }
-//     });
-
-//     if (!order) {
-//       return ctx.notFound('Order not found');
-//     }
-
-//     const currentStatus = order.status;
-
-//     // Optional: only allow retailer/admin to confirm or ship
-//     if (['confirmed', 'shipped'].includes(newStatus) && decoded.type !== 'retailer' && decoded.type !== 'admin') {
-//       return ctx.unauthorized('You are not authorized to change this status');
-//     }
-
-//     // Handle inventory decrease on confirmation
-//     if (newStatus === 'confirmed' && currentStatus === 'pending') {
-//       for (const item of order.order_items) {
-//         const product = item.product;
-
-//         if (product.quantity < item.quantity) {
-//           return ctx.badRequest(`Insufficient stock for product ID ${product.id}`);
-//         }
-
-//         await strapi.db.query('api::product.product').update({
-//           where: { id: product.id },
-//           data: {
-//             quantity: { $decrement: item.quantity }
-//           }
-//         });
-//       }
-//     }
-
-//     // Handle inventory restore on cancelled (if previously confirmed)
-//     if (newStatus === 'cancelled' && currentStatus === 'confirmed') {
-//       for (const item of order.order_items) {
-//         const product = item.product;
-
-//         await strapi.db.query('api::product.product').update({
-//           where: { id: product.id },
-//           data: {
-//             quantity: { $increment: item.quantity }
-//           }
-//         });
-//       }
-//     }
-
-//     // Update order status
-//     const updatedOrder = await strapi.entityService.update('api::order.order', id, {
-//       data: { status: newStatus }
-//     });
-
-//     return ctx.send({ message: 'Order status updated', status: updatedOrder.status });
-
-//   } catch (err) {
-//     console.error(err);
-//     return ctx.badRequest(err.message);
-//   }
-// }
+async getRetailerOrders(ctx) {},
+async getRetailerOrderDetails(ctx) {},
+async updateRetailerOrderStatus(ctx) {},
+async confirmedOrder(ctx) {},
+async recentPurchases(ctx) {},
+async getOrderByStatus(ctx) {},
+async getOrderById(ctx) {},
+async getStatistics(ctx) {},
 
 }));
+
