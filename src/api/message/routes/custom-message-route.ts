@@ -3,25 +3,25 @@ export default {
   {
     method: "POST",
     path: "/messages",
-    handler: "custom-message.createMessage",
+    handler: "message.createMessage",
     config: { auth: false }
   },
   {
     method: "GET",
     path: "/messages",
-    handler: "custom-message.getAllMessages",
+    handler: "message.getAllMessages",
     config: { policies: ["admin::isAuthenticatedAdmin"] }
   },
   {
     method: "GET",
     path: "/messages/:id",
-    handler: "custom-message.getMessageById",
+    handler: "message.getMessageById",
     config: { policies: ["admin::isAuthenticatedAdmin"] }
   },
   {
     method: "DELETE",
     path: "/messages/:id",
-    handler: "custom-message.deleteMessage",
+    handler: "message.deleteMessage",
     config: { policies: ["admin::isAuthenticatedAdmin"] }
   }
 ]
