@@ -10,18 +10,5 @@
     "draftAndPublish": true
   },
   "pluginOptions": {},
-  "attributes": {
-    "shippment_addresses": {
-      "type": "relation",
-      "relation": "oneToMany",
-      "target": "api::shippment-address.shippment-address",
-      "mappedBy": "customer"
-    },
-    "app_user": {
-      "type": "relation",
-      "relation": "oneToOne",
-      "target": "api::app-user.app-user",
-      "inversedBy": "customer_profile"
-    }
-  }
+  "attributes": {}
 }

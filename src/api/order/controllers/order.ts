@@ -359,7 +359,8 @@ async recentPurchases(ctx) {
     const limit = parseInt(typeof ctx.query.limit === 'string' ? ctx.query.limit : '') || 5; // Default to 5 recent orders
     const orders = await strapi.entityService.findMany("api::order.order", {
       filters: {
-        customer: userId,
+        retailer: userId,
+        deletedAt: null, // Ensure we only get non-deleted orders
       },
       sort: [{ orderedAt: 'desc' }],
       limit,

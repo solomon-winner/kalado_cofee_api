@@ -16,6 +16,14 @@ export default {
                auth: false,
             },
         },
+                {
+            method: 'GET',
+            path: '/shippment-address/default',
+            handler: 'shippment-address.getDefaultAddress',
+            config: {
+               auth: false,
+            },
+        },
         {
             method: 'GET',
             path: '/shippment-address/:id',
@@ -24,14 +32,7 @@ export default {
                auth: false,
             }, 
         },
-        {
-            method: 'GET',
-            path: '/shippment-address',
-            handler: 'shippment-address.getDefaultAddress',
-            config: {
-               auth: false,
-            },
-        },
+
         {
             method: 'PUT',
             path: '/shippment-address/:id',
@@ -50,7 +51,7 @@ export default {
         },
         {
             method: 'POST',
-            path: '/shippment-address/set-default',
+            path: '/shippment-address/set-default/:id',
             handler: 'shippment-address.setDefaultAddress',
             config: {
                auth: false,

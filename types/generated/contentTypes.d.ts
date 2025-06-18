@@ -425,10 +425,6 @@ export interface ApiAppUserAppUser extends Struct.CollectionTypeSchema {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    customer_profile: Schema.Attribute.Relation<
-      'oneToOne',
-      'api::customer-profile.customer-profile'
-    >;
     deletedAt: Schema.Attribute.DateTime;
     email: Schema.Attribute.Email & Schema.Attribute.Required;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
@@ -451,6 +447,10 @@ export interface ApiAppUserAppUser extends Struct.CollectionTypeSchema {
     resetPasswordToken: Schema.Attribute.String;
     resetTokenExpiry: Schema.Attribute.DateTime;
     retailer_orders: Schema.Attribute.Relation<'oneToMany', 'api::order.order'>;
+    shippment_addresses: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::shippment-address.shippment-address'
+    >;
     type: Schema.Attribute.Enumeration<['customer', 'retailer', 'blogger']> &
       Schema.Attribute.DefaultTo<'customer'>;
     updatedAt: Schema.Attribute.DateTime;
@@ -499,7 +499,6 @@ export interface ApiCustomerProfileCustomerProfile
     draftAndPublish: true;
   };
   attributes: {
-    app_user: Schema.Attribute.Relation<'oneToOne', 'api::app-user.app-user'>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -510,10 +509,6 @@ export interface ApiCustomerProfileCustomerProfile
     > &
       Schema.Attribute.Private;
     publishedAt: Schema.Attribute.DateTime;
-    shippment_addresses: Schema.Attribute.Relation<
-      'oneToMany',
-      'api::shippment-address.shippment-address'
-    >;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -748,7 +743,7 @@ export interface ApiShippmentAddressShippmentAddress
     singularName: 'shippment-address';
   };
   options: {
-    draftAndPublish: true;
+    draftAndPublish: false;
   };
   attributes: {
     address1: Schema.Attribute.String & Schema.Attribute.Required;
@@ -757,10 +752,7 @@ export interface ApiShippmentAddressShippmentAddress
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    customer: Schema.Attribute.Relation<
-      'manyToOne',
-      'api::customer-profile.customer-profile'
-    >;
+    customer: Schema.Attribute.Relation<'manyToOne', 'api::app-user.app-user'>;
     firstName: Schema.Attribute.String & Schema.Attribute.Required;
     isDefault: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     isSaved: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;

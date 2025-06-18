@@ -7,7 +7,7 @@
     "displayName": "shippmentAddress"
   },
   "options": {
-    "draftAndPublish": true
+    "draftAndPublish": false
   },
   "pluginOptions": {},
   "attributes": {
@@ -52,7 +52,7 @@
     "customer": {
       "type": "relation",
       "relation": "manyToOne",
-      "target": "api::customer-profile.customer-profile",
+      "target": "api::app-user.app-user",
       "inversedBy": "shippment_addresses"
     }
   }

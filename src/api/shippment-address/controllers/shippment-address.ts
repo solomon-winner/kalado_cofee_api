@@ -13,8 +13,8 @@ async createAddress(ctx) {
 
     const body = ctx.request.body;
 
-    const customerProfile = await strapi.entityService.findMany("api::customer-profile.customer-profile", {
-      filters: { app_user: userId },
+    const customerProfile = await strapi.entityService.findMany("api::app-user.app-user", {
+      filters: { id: userId },
       populate: ['shippment_addresses']
     });
 
@@ -33,13 +33,14 @@ async createAddress(ctx) {
     return ctx.badRequest("Could not create address");
   }
 },
+
 async getAddresses(ctx) {
   try {
     const decoded = verifyToken(ctx);
     const userId = decoded.id;
 
-    const customerProfile = await strapi.entityService.findMany("api::customer-profile.customer-profile", {
-      filters: { app_user: userId },
+    const customerProfile = await strapi.entityService.findMany("api::app-user.app-user", {
+      filters: { id: userId },
       populate: ['shippment_addresses']
     }) as any[];
 
@@ -62,7 +63,7 @@ async getDefaultAddress(ctx) {
 
     const addresses = await strapi.entityService.findMany("api::shippment-address.shippment-address", {
       filters: {
-        customer: { app_user: userId },
+        customer:  userId ,
         isDefault: true
       }
     });
@@ -76,53 +77,54 @@ async getDefaultAddress(ctx) {
     return ctx.badRequest("Could not get default address");
   }
 },
+
 async updateAddress(ctx) {
-  try {
-    const { id } = ctx.params;
-    const body = ctx.request.body;
-    const decoded = verifyToken(ctx);
-    const userId = decoded.id;
+  // try {
+  //   const { id } = ctx.params;
+  //   const body = ctx.request.body;
+  //   const decoded = verifyToken(ctx);
+  //   const userId = decoded.id;
 
-    const existing = await strapi.entityService.findOne("api::shippment-address.shippment-address", id, {
-      populate: { customer: { populate: ['app_user'] } }
-    }) as any;
+  //   const existing = await strapi.entityService.findOne("api::shippment-address.shippment-address", id, {
+  //     populate: { customer: { populate: ['app_user'] } }
+  //   }) as any;
 
-    if (!existing || existing.customer?.app_user?.id !== userId) {
-      return ctx.unauthorized("Unauthorized or address not found");
-    }
+  //   if (!existing || existing.customer?.app_user?.id !== userId) {
+  //     return ctx.unauthorized("Unauthorized or address not found");
+  //   }
 
-    const updated = await strapi.entityService.update("api::shippment-address.shippment-address", id, {
-      data: body
-    });
+  //   const updated = await strapi.entityService.update("api::shippment-address.shippment-address", id, {
+  //     data: body
+  //   });
 
-    return ctx.send({ message: "Address updated", data: updated });
-  } catch (err) {
-    console.error(err);
-    return ctx.badRequest("Failed to update address");
-  }
+  //   return ctx.send({ message: "Address updated", data: updated });
+  // } catch (err) {
+  //   console.error(err);
+  //   return ctx.badRequest("Failed to update address");
+  // }
 },
 
 async deleteAddress(ctx) {
-  try {
-    const { id } = ctx.params;
-    const decoded = verifyToken(ctx);
-    const userId = decoded.id;
+  // try {
+  //   const { id } = ctx.params;
+  //   const decoded = verifyToken(ctx);
+  //   const userId = decoded.id;
 
-    const existing = await strapi.entityService.findOne("api::shippment-address.shippment-address", id, {
-      populate: { customer: { populate: ['app_user'] } }
-    }) as any;
+  //   const existing = await strapi.entityService.findOne("api::shippment-address.shippment-address", id, {
+  //     populate: { customer: { populate: ['app_user'] } }
+  //   }) as any;
 
-    if (!existing || existing.customer?.app_user?.id !== userId) {
-      return ctx.unauthorized("Unauthorized or address not found");
-    }
+  //   if (!existing || existing.customer?.app_user?.id !== userId) {
+  //     return ctx.unauthorized("Unauthorized or address not found");
+  //   }
 
-    await strapi.entityService.delete("api::shippment-address.shippment-address", id);
+  //   await strapi.entityService.delete("api::shippment-address.shippment-address", id);
 
-    return ctx.send({ message: "Address deleted" });
-  } catch (err) {
-    console.error(err);
-    return ctx.badRequest("Failed to delete address");
-  }
+  //   return ctx.send({ message: "Address deleted" });
+  // } catch (err) {
+  //   console.error(err);
+  //   return ctx.badRequest("Failed to delete address");
+  // }
 },
 
 async setDefaultAddress(ctx) {
@@ -132,18 +134,19 @@ async setDefaultAddress(ctx) {
     const userId = decoded.id;
 
     const address = await strapi.entityService.findOne("api::shippment-address.shippment-address", id, {
-      populate: { customer: { populate: ['app_user'] } }
+      populate: ['customer']
     }) as any;
 
-    if (!address || address.customer?.app_user?.id !== userId) {
+    if (!address || address.customer?.id !== userId) {
       return ctx.unauthorized("Unauthorized or address not found");
     }
 
     // Unset previous defaults
-    await strapi.db.query("api::shippment-address.shippment-address").updateMany({
-      where: { customer: address.customer.id },
+    const testArray = await strapi.db.query("api::shippment-address.shippment-address").update({
+      where: { customer: userId, isDefault: true },
       data: { isDefault: false }
     });
+
 
     // Set this one
     const updated = await strapi.entityService.update("api::shippment-address.shippment-address", id, {

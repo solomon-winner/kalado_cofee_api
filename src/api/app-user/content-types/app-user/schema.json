@@ -56,11 +56,11 @@
       "target": "api::blog.blog",
       "mappedBy": "writer"
     },
-    "customer_profile": {
+    "shippment_addresses": {
       "type": "relation",
-      "relation": "oneToOne",
-      "target": "api::customer-profile.customer-profile",
-      "mappedBy": "app_user"
+      "relation": "oneToMany",
+      "target": "api::shippment-address.shippment-address",
+      "mappedBy": "customer"
     },
     "deletedAt": {
       "type": "datetime"
