@@ -8,7 +8,14 @@ export default {
                 auth: false,
             }
         },
-        
+                { 
+            method: 'GET', 
+            path: '/products/detail/:id', 
+            handler: 'product.getProductDetail',
+            config: {
+                auth: false,
+            }
+        },
         { 
             method: 'GET', 
             path: '/products/stats', 
@@ -28,7 +35,7 @@ export default {
         { 
             method: 'GET', 
             path: '/products/:id', 
-            handler: 'product.getProduct',
+            handler: 'product.getProductForRetailer',
             config: {
                 auth: false,
             } 

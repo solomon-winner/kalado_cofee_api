@@ -1,7 +1,8 @@
 import { verifyToken } from '../../../utils/dto/verify-token';
+const { ProductDTO, ProductListDTO } = require('../../../utils/dto/product/productDto');
 
 export default {
-  async getProduct(ctx) {
+  async getProductForRetailer(ctx) {
     try {
       const decoded = verifyToken(ctx);
       const { id } = ctx.params;
@@ -18,13 +19,34 @@ export default {
         return ctx.notFound('Product not found or not owned by you');
       }
 
-      return ctx.send(product);
+      return ctx.send(ProductDTO(product));
     } catch (err) {
       strapi.log.error('Error in getProduct:', err);
       return ctx.badRequest('Something went wrong');
     }
   },
+  async getProductDetail(ctx) {
+    try {
+      const decoded = verifyToken(ctx);
+      const { id } = ctx.params;
 
+      const product = await strapi.db.query('api::product.product').findOne({
+        where: {
+          id
+        },
+        populate: ['images'], // optionally populate relations
+      });
+
+      if (!product) {
+        return ctx.notFound('Product not found or not owned by you');
+      }
+
+      return ctx.send(ProductDTO(product));
+    } catch (err) {
+      strapi.log.error('Error in getProduct:', err);
+      return ctx.badRequest('Something went wrong');
+    }
+  },
 async getOrderItemsForProduct(ctx) {
   try {
     const decoded = verifyToken(ctx);
@@ -66,10 +88,11 @@ async getOrderItemsForProduct(ctx) {
                 page: ctx.query.page ? parseInt(ctx.query.page, 10) : 1,
                 pageSize: ctx.query.pageSize ? parseInt(ctx.query.pageSize, 10) : 10,
               },
-              fields: ['id', 'name', 'price'], // product fields
+              fields: ['id', 'name', 'price', 'quantity', 'discount', 'isPopular'], // specify which fields to fetch
+             // product fields
             });
 
-            return ctx.send(products);
+            return ctx.send(ProductListDTO(products));
           }
           
       const products = await strapi.entityService.findMany('api::product.product',{
