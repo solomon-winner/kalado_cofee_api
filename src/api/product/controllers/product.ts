@@ -19,7 +19,7 @@ export default {
         return ctx.notFound('Product not found or not owned by you');
       }
 
-      return ctx.send(ProductDTO(product));
+      return ctx.send(new ProductDTO(product));
     } catch (err) {
       strapi.log.error('Error in getProduct:', err);
       return ctx.badRequest('Something went wrong');
@@ -41,12 +41,13 @@ export default {
         return ctx.notFound('Product not found or not owned by you');
       }
 
-      return ctx.send(ProductDTO(product));
+      return ctx.send( new ProductDTO(product));
     } catch (err) {
       strapi.log.error('Error in getProduct:', err);
       return ctx.badRequest('Something went wrong');
     }
   },
+  // this controller is for the retailer to get all order items for a specific product
 async getOrderItemsForProduct(ctx) {
   try {
     const decoded = verifyToken(ctx);
@@ -111,7 +112,7 @@ async getOrderItemsForProduct(ctx) {
       data.retailer = decoded.id;
 
       const created = await strapi.entityService.create('api::product.product', { data });
-      return ctx.send(created);
+      return ctx.send(new ProductDTO(created));
     } catch (err) {
       return ctx.badRequest(err.message);
     }
@@ -130,7 +131,7 @@ async getOrderItemsForProduct(ctx) {
         )
       );
 
-      return ctx.send(createdProducts);
+      return ctx.send(ProductListDTO(createdProducts));
     } catch (err) {
       return ctx.badRequest(err.message);
     }
@@ -152,7 +153,7 @@ async updateProduct(ctx) {
       data: body,
     });
 
-    return ctx.send(updated);
+    return ctx.send(new ProductDTO(updated));
   } catch (err) {
     return ctx.badRequest(err.message);
   }
@@ -266,7 +267,7 @@ async deleteManyProducts(ctx) {
         orderBy: { createdAt: 'desc' }
       });
 
-      return ctx.send(products);
+      return ctx.send(ProductListDTO(products));
     } catch (err) {
       return ctx.badRequest(err.message);
     }
@@ -284,7 +285,7 @@ async deleteManyProducts(ctx) {
         populate: ['images', 'order_items'],
       });
 
-      return ctx.send(products);
+      return ctx.send(ProductListDTO(products));
     } catch (err) {
       return ctx.badRequest(err.message);
     }
