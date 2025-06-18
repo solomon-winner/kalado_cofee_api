@@ -51,7 +51,7 @@ export default {
         // Custom route to get for retailers
         {
             method: 'PUT',
-            path: '/order/:orderItemId',
+            path: '/order/:id',
             handler: 'order.updateRetailerOrderStatus',
             config: {
                 auth: false,
@@ -92,7 +92,7 @@ export default {
     },
     {
            method: 'GET',
-           path: '/order/:orderItemId',
+           path: '/order/:id',
            handler: 'order.getOrderById',
            config: {
                auth: false,

@@ -104,6 +104,7 @@ async getMyOrders(ctx) {
 
     const filters: any = {
       customer: userId,
+      deletedAt: null, // Ensure we only get non-deleted orders
     };
 
     if (status) {
@@ -130,6 +131,7 @@ async getMyOrders(ctx) {
     return ctx.badRequest("Failed to fetch orders");
   }
 },
+
 async getCartItems(ctx) {
   try {
     const decoded = verifyToken(ctx);
@@ -318,7 +320,7 @@ async updateRetailerOrderStatus(ctx) {
   try {
     const decoded = verifyToken(ctx);
     const userId = decoded.id;
-    const { orderId } = ctx.params;
+    const { id } = ctx.params;
     const { status } = ctx.request.body;
 
     // Validate status
@@ -327,7 +329,7 @@ async updateRetailerOrderStatus(ctx) {
     }
 
     // Fetch the order
-    const order = await strapi.entityService.findOne("api::order.order", orderId, {
+    const order = await strapi.entityService.findOne("api::order.order", id, {
       populate: ['retailer'],
     }) as any;
 
@@ -336,7 +338,7 @@ async updateRetailerOrderStatus(ctx) {
     }
 
     // Update the order status
-    const updatedOrder = await strapi.entityService.update("api::order.order", orderId, {
+    const updatedOrder = await strapi.entityService.update("api::order.order", id, {
       data: { status },
     });
 
@@ -384,8 +386,13 @@ async recentPurchases(ctx) {
 async getOrderById(ctx) {
   try {
     const { id } = ctx.params;
-
+    const decoded = verifyToken(ctx);
+    console.log("Decoded user ID:", id);
     const order = await strapi.entityService.findOne("api::order.order", id, {
+      filters: {
+        retailer: decoded.id, // Ensure the retailer owns this order
+        deletedAt: null, // Ensure we only get non-deleted orders
+      },
       populate: {
         order_items: {
           populate: ['product'],
