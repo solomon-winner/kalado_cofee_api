@@ -3,7 +3,7 @@ export default {
         {
             method: 'POST',
             path: '/shippment-address',
-            handler: 'custom-shippment-address.createAddress',
+            handler: 'shippment-address.createAddress',
             config: {
                auth: false,
             },
@@ -11,7 +11,7 @@ export default {
         {
             method: 'GET',
             path: '/shippment-address',
-            handler: 'custom-shippment-address.getAddresses',
+            handler: 'shippment-address.getAddresses',
             config: {
                auth: false,
             },
@@ -19,7 +19,7 @@ export default {
         {
             method: 'GET',
             path: '/shippment-address/:id',
-            handler: 'custom-shippment-address.findOne',
+            handler: 'shippment-address.findOne',
             config: {
                auth: false,
             }, 
@@ -27,7 +27,7 @@ export default {
         {
             method: 'GET',
             path: '/shippment-address',
-            handler: 'custom-shippment-address.getDefaultAddress',
+            handler: 'shippment-address.getDefaultAddress',
             config: {
                auth: false,
             },
@@ -35,7 +35,7 @@ export default {
         {
             method: 'PUT',
             path: '/shippment-address/:id',
-            handler: 'custom-shippment-address.updateAddress',
+            handler: 'shippment-address.updateAddress',
             config: {
                auth: false,
             },
@@ -43,7 +43,7 @@ export default {
         {
             method: 'DELETE',
             path: '/shippment-address/:id',
-            handler: 'custom-shippment-address.deleteAddress',
+            handler: 'shippment-address.deleteAddress',
             config: {
                auth: false,
             },
@@ -51,7 +51,7 @@ export default {
         {
             method: 'POST',
             path: '/shippment-address/set-default',
-            handler: 'custom-shippment-address.setDefaultAddress',
+            handler: 'shippment-address.setDefaultAddress',
             config: {
                auth: false,
             },

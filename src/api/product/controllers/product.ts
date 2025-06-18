@@ -49,6 +49,29 @@ async getOrderItemsForProduct(ctx) {
   async getProducts(ctx) {
     try {
       const decoded = verifyToken(ctx);
+      const user = await strapi.db.query('api::app-user.app-user').findOne({
+        where: { id: decoded.id, deletedAt: null },
+      });
+      if (user?.type == 'customer') {
+                    const products = await strapi.entityService.findMany('api::product.product', {
+              filters: { deletedAt: null },
+              populate: {
+                images: true, // full population or customize similarly if needed
+                retailer: {
+                  fields: ['id', 'name'], // only get these fields from retailer
+                },
+              },
+              sort: { createdAt: 'desc' },
+              pagination: {
+                page: ctx.query.page ? parseInt(ctx.query.page, 10) : 1,
+                pageSize: ctx.query.pageSize ? parseInt(ctx.query.pageSize, 10) : 10,
+              },
+              fields: ['id', 'name', 'price'], // product fields
+            });
+
+            return ctx.send(products);
+          }
+          
       const products = await strapi.entityService.findMany('api::product.product',{
         filters: { retailer: decoded.id },
       });

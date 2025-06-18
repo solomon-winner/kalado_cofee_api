@@ -43,7 +43,7 @@ export default {
         {
             method: 'POST',
             path: '/order/cart/checkout',
-            handler: 'order.checkout',
+            handler: 'order.checkoutOrder',
             config: {
                 auth: false,
             }
@@ -73,18 +73,27 @@ export default {
                 auth: false,
             }
         },
+        
         {
            method: 'GET',
-           path: '/order/:orderItemId',
-           handler: 'order.getOrderDetails',
+           path: '/order/report',
+           handler: 'order.getSalesReport',
            config: {
                auth: false,
            }
         },
         {
+      method: 'GET',
+      path: '/order/retailer-orders',
+      handler: 'order.getRetailerOrders',
+      config: {
+        auth: false,
+      },
+    },
+    {
            method: 'GET',
-           path: '/order/report',
-           handler: 'order.getSalesReport',
+           path: '/order/:orderItemId',
+           handler: 'order.getOrderById',
            config: {
                auth: false,
            }

@@ -65,13 +65,6 @@ export default {
         auth: false,
       },
     },
-    {
-      method: 'GET',
-      path: '/app-users/retailer-orders',
-      handler: 'app-user.getUser',
-      config: {
-        auth: false,
-      },
-    }
+    
   ],
 };

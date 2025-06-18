@@ -34,6 +34,4 @@ async getBlogById(ctx) {
     return ctx.badRequest("Failed to fetch blog");
   }
 }
-
-
 }));

@@ -252,35 +252,5 @@ async resetPassword(ctx) {
   return ctx.send({ message: 'Password reset successful' });
 },
 
-async getRetailerOrders(ctx) {
-  try {
-    const decoded = verifyToken(ctx);
-    const userId = decoded.id;
-    const status = ctx.query.status || ''; // Default to empty string
-
-    const filters = {
-      retailer: userId,
-      ...(status && { status }), // Only filter by status if it's provided
-    };
-
-    const orders = await strapi.entityService.findMany("api::order.order", {
-      filters,
-      populate: {
-        order_items: {
-          populate: ['product'],
-        },
-      },
-    });
-
-    return ctx.send({
-      message: 'Retailer orders retrieved successfully',
-      orders,
-    });
-  } catch (err) {
-    console.error(err);
-    return ctx.badRequest("Failed to fetch retailer orders");
-  }
-}
-
 
 }));
