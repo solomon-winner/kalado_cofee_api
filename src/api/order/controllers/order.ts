@@ -6,6 +6,7 @@ import { factories } from '@strapi/strapi'
 import { verifyToken } from '../../../utils/dto/verify-token';
 import { PopulatedOrderItem } from '../type/order_schems_type'; // Adjust the import path as necessary
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format, subMonths, subYears } from 'date-fns';
+const {OrderDTO, OrderListDTO} = require('../../../utils/dto/order/orderDto');
 
 export default factories.createCoreController('api::order.order', ({ strapi }) => ({
   //this is the controller for the order API intended for managing orders and cart items for customers
@@ -115,16 +116,19 @@ async getMyOrders(ctx) {
       filters,
       populate: {
         order_items: {
-          populate: ['product'], // add retailers here
+          populate: ['product'],
         },
         shippment_address: true,
       },
       sort: { orderedAt: 'desc' },
     });
-
+    orders.forEach(order => {
+      (order as { order_items?: any[] }).order_items = (order as any).order_items?.length || 0;
+    });
+    
     return ctx.send({
       message: 'Orders retrieved successfully',
-      orders,
+      orders: OrderListDTO(orders),
     });
   } catch (err) {
     console.error(err);

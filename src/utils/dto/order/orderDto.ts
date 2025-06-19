@@ -14,11 +14,11 @@ class OrderDTO {
     quantity: number;
     price: number;
     product: { id: number | null; name: string } | null;
-  }[];
+  }[]| number;
   paymentStatus: string;
   paymentMethod: string;
   paidAt: string | null;
-
+  order_items_count: number | null;
   constructor(order: any = {}) {
     this.id = order.id ?? null;
 
@@ -61,7 +61,7 @@ class OrderDTO {
               }
             : null,
         }))
-      : [];
+      : order.order_items ?? 0;
 
     this.paymentStatus = order.paymentStatus ?? 'unpaid';
     this.paymentMethod = order.paymentMethod ?? 'online';
