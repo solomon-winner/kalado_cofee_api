@@ -7,6 +7,7 @@ import { verifyToken } from '../../../utils/dto/verify-token';
 import { PopulatedOrderItem } from '../type/order_schems_type'; // Adjust the import path as necessary
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format, subMonths, subYears } from 'date-fns';
 const {OrderDTO, OrderListDTO} = require('../../../utils/dto/order/orderDto');
+const { OrderItemDTO, OrderItemListDTO } = require('../../../utils/dto/order/orderItem');
 
 export default factories.createCoreController('api::order.order', ({ strapi }) => ({
   //this is the controller for the order API intended for managing orders and cart items for customers
@@ -88,7 +89,7 @@ async addToCart(ctx) {
     return ctx.send({
       message: 'Item added to cart (not confirmed until payment)',
       orderId: pendingOrder.id,
-      orderItem,
+      orderItem: new OrderItemDTO(orderItem),
     });
 
   } catch (err) {
