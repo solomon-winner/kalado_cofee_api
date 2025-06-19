@@ -5,6 +5,7 @@
 import { factories } from '@strapi/strapi'
 import { verifyToken } from '../../../utils/dto/verify-token';
 const { ShippmentAddressDTO, ShippmentAddressListDTO } = require('../../../utils/dto/shippment-address/shippmentAddress');
+
 export default factories.createCoreController('api::shippment-address.shippment-address', ({ strapi }) => ({
 async createAddress(ctx) {
   try {
@@ -27,7 +28,7 @@ async createAddress(ctx) {
       }
     });
 
-    return ctx.send({ message: "Shipping address created", data: created });
+    return ctx.send({ message: "Shipping address created", data: new ShippmentAddressDTO(created) });
   } catch (err) {
     console.error(err);
     return ctx.badRequest("Could not create address");
@@ -72,7 +73,7 @@ async getDefaultAddress(ctx) {
 
     return ctx.send({
       message: "Default address fetched",
-      data: addresses.length ? addresses[0] : null
+      data:  addresses.length ? new ShippmentAddressDTO(addresses[0]) : null
     });
   } catch (err) {
     console.error(err);
@@ -81,52 +82,52 @@ async getDefaultAddress(ctx) {
 },
 
 async updateAddress(ctx) {
-  // try {
-  //   const { id } = ctx.params;
-  //   const body = ctx.request.body;
-  //   const decoded = verifyToken(ctx);
-  //   const userId = decoded.id;
+  try {
+    const { id } = ctx.params;
+    const body = ctx.request.body;
+    const decoded = verifyToken(ctx);
+    const userId = decoded.id;
 
-  //   const existing = await strapi.entityService.findOne("api::shippment-address.shippment-address", id, {
-  //     populate: { customer: { populate: ['app_user'] } }
-  //   }) as any;
+    const existing = await strapi.entityService.findOne("api::shippment-address.shippment-address", id, {
+      populate: ['customer']
+    }) as any;
 
-  //   if (!existing || existing.customer?.app_user?.id !== userId) {
-  //     return ctx.unauthorized("Unauthorized or address not found");
-  //   }
+    if (!existing || existing.customer?.id !== userId) {
+      return ctx.unauthorized("Unauthorized or address not found");
+    }
 
-  //   const updated = await strapi.entityService.update("api::shippment-address.shippment-address", id, {
-  //     data: body
-  //   });
+    const updated = await strapi.entityService.update("api::shippment-address.shippment-address", id, {
+      data: body
+    });
 
-  //   return ctx.send({ message: "Address updated", data: updated });
-  // } catch (err) {
-  //   console.error(err);
-  //   return ctx.badRequest("Failed to update address");
-  // }
+    return ctx.send({ message: "Address updated", data: new ShippmentAddressDTO(updated) });
+  } catch (err) {
+    console.error(err);
+    return ctx.badRequest("Failed to update address");
+  }
 },
 
 async deleteAddress(ctx) {
-  // try {
-  //   const { id } = ctx.params;
-  //   const decoded = verifyToken(ctx);
-  //   const userId = decoded.id;
+  try {
+    const { id } = ctx.params;
+    const decoded = verifyToken(ctx);
+    const userId = decoded.id;
 
-  //   const existing = await strapi.entityService.findOne("api::shippment-address.shippment-address", id, {
-  //     populate: { customer: { populate: ['app_user'] } }
-  //   }) as any;
+    const existing = await strapi.entityService.findOne("api::shippment-address.shippment-address", id, {
+      populate: ['customer']
+    }) as any;
 
-  //   if (!existing || existing.customer?.app_user?.id !== userId) {
-  //     return ctx.unauthorized("Unauthorized or address not found");
-  //   }
+    if (!existing || existing.customer?.id !== userId) {
+      return ctx.unauthorized("Unauthorized or address not found");
+    }
 
-  //   await strapi.entityService.delete("api::shippment-address.shippment-address", id);
+    await strapi.entityService.delete("api::shippment-address.shippment-address", id);
 
-  //   return ctx.send({ message: "Address deleted" });
-  // } catch (err) {
-  //   console.error(err);
-  //   return ctx.badRequest("Failed to delete address");
-  // }
+    return ctx.send({ message: "Address deleted" });
+  } catch (err) {
+    console.error(err);
+    return ctx.badRequest("Failed to delete address");
+  }
 },
 
 async setDefaultAddress(ctx) {
@@ -155,7 +156,7 @@ async setDefaultAddress(ctx) {
       data: { isDefault: true }
     });
 
-    return ctx.send({ message: "Default address updated", data: updated });
+    return ctx.send({ message: "Default address updated", data: new ShippmentAddressDTO(updated)  });
   } catch (err) {
     console.error(err);
     return ctx.badRequest("Failed to set default address");
