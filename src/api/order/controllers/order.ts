@@ -8,6 +8,7 @@ import { PopulatedOrderItem } from '../type/order_schems_type'; // Adjust the im
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format, subMonths, subYears } from 'date-fns';
 const {OrderDTO, OrderListDTO} = require('../../../utils/dto/order/orderDto');
 const { OrderItemDTO, OrderItemListDTO } = require('../../../utils/dto/order/orderItem');
+const { CartItemDto, CartItemListDTO } = require('../../../utils/dto/cart/cartItem');
 
 export default factories.createCoreController('api::order.order', ({ strapi }) => ({
   //this is the controller for the order API intended for managing orders and cart items for customers
@@ -158,11 +159,12 @@ async getCartItems(ctx) {
 
     return ctx.send({
       message: "Your cart",
-      cart: pendingOrder.order_items,
+      cart: CartItemListDTO(pendingOrder.order_items),
       totalAmount: pendingOrder.total_amount,
     });
 
   } catch (err) {
+    console.error(err);
     return ctx.badRequest("Failed to fetch cart");
   }
 },

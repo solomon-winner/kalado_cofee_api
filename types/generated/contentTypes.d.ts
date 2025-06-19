@@ -753,6 +753,7 @@ export interface ApiShippmentAddressShippmentAddress
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     customer: Schema.Attribute.Relation<'manyToOne', 'api::app-user.app-user'>;
+    deletedAt: Schema.Attribute.DateTime;
     firstName: Schema.Attribute.String & Schema.Attribute.Required;
     isDefault: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     isSaved: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;

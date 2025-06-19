@@ -4,7 +4,7 @@
 
 import { factories } from '@strapi/strapi'
 import { verifyToken } from '../../../utils/dto/verify-token';
-
+const { ShippmentAddressDTO, ShippmentAddressListDTO } = require('../../../utils/dto/shippment-address/shippmentAddress');
 export default factories.createCoreController('api::shippment-address.shippment-address', ({ strapi }) => ({
 async createAddress(ctx) {
   try {
@@ -39,19 +39,21 @@ async getAddresses(ctx) {
     const decoded = verifyToken(ctx);
     const userId = decoded.id;
 
-    const customerProfile = await strapi.entityService.findMany("api::app-user.app-user", {
-      filters: { id: userId },
-      populate: ['shippment_addresses']
-    }) as any[];
-
-    if (!customerProfile.length) return ctx.badRequest("Customer profile not found");
+    const addresses = await strapi.entityService.findMany("api::shippment-address.shippment-address", {
+      filters: {
+        customer: userId,
+        isSaved: true,
+        deletedAt: null, 
+      },
+      sort: { updatedAt: "desc" },
+    });
 
     return ctx.send({
       message: "Addresses fetched",
-      addresses: customerProfile[0]?.shippment_addresses || []
+      addresses: ShippmentAddressListDTO(addresses),
     });
   } catch (err) {
-    console.error(err);
+    console.error("Error fetching addresses:", err);
     return ctx.badRequest("Could not fetch addresses");
   }
 },

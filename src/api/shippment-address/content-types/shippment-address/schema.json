@@ -54,6 +54,9 @@
       "relation": "manyToOne",
       "target": "api::app-user.app-user",
       "inversedBy": "shippment_addresses"
+    },
+    "deletedAt": {
+      "type": "datetime"
     }
   }
 }
