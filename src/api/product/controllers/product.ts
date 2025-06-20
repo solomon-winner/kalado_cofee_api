@@ -1,7 +1,9 @@
 import { verifyToken } from '../../../utils/dto/verify-token';
 const { ProductDTO, ProductListDTO } = require('../../../utils/dto/product/productDto');
+const { OrderItemListDTO } = require('../../../utils/dto/order/orderItem');
 
 export default {
+  // the two controllers below are the same but for different users
   async getProductForRetailer(ctx) {
     try {
       const decoded = verifyToken(ctx);
@@ -63,7 +65,7 @@ async getOrderItemsForProduct(ctx) {
       where: { product: productId },
     });
 
-    return ctx.send(orderItems);
+    return ctx.send(OrderItemListDTO(orderItems));
   } catch (err) {
     return ctx.badRequest(err.message);
   }
@@ -182,7 +184,6 @@ async deleteManyProducts(ctx) {
   try {
     const decoded = verifyToken(ctx);
     const { ids } = ctx.request.body;
-    console.log('Deleting products with IDs:', ctx.request.body);
     const deletionResults = await Promise.all(
       ids.map(async (id) => {
         const product = await strapi.entityService.findOne('api::product.product', id, {
@@ -264,9 +265,9 @@ async deleteManyProducts(ctx) {
 
       const products = await strapi.db.query('api::product.product').findMany({
         where: filters,
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: 'desc' },
+        populate: ['images', 'retailer'], // populate images and retailer
       });
-
       return ctx.send(ProductListDTO(products));
     } catch (err) {
       return ctx.badRequest(err.message);
@@ -290,34 +291,45 @@ async deleteManyProducts(ctx) {
       return ctx.badRequest(err.message);
     }
   },
-  async statForRetailer(ctx) {
-    try {
-      const decoded = verifyToken(ctx);
 
-      const products = await strapi.db.query('api::product.product').findMany({
-        where: { retailer: decoded.id },
-        populate: ['order_items'],
-      });
+async statForRetailer(ctx) {
+  try {
+    const decoded = verifyToken(ctx);
 
-      const stats = products.map(p => ({
-        id: p.id,
-        name: p.name,
-        totalSold: p.order_items.length,
-      }));
+    // Step 1: Fetch products owned by this retailer with populated order_items
+    const products = await strapi.db.query('api::product.product').findMany({
+      where: { retailer: decoded.id },
+      populate: ['order_items'],
+    });
 
-      const totalRevenue = products.reduce((sum, p) => {
-        return sum + p.order_items.reduce((acc, item) => acc + Number(item.price), 0);
-      }, 0);
+    // Step 2: Filter products that have at least one non-deleted order_item
+    const filteredProducts = products.filter(product =>
+      product.order_items && product.order_items.some(item => !item.deletedAt)
+    );
 
-      return ctx.send({
-        totalProducts: products.length,
-        totalRevenue,
-        products: stats,
-      });
-    } catch (err) {
-      return ctx.badRequest(err.message);
-    }
-  },
+    // Step 3: Calculate stats
+    const stats = filteredProducts.map(p => ({
+      id: p.id,
+      name: p.name,
+      totalSold: p.order_items.filter(item => !item.deletedAt).length,
+    }));
+
+    const totalRevenue = filteredProducts.reduce((sum, p) => {
+      return sum + p.order_items
+        .filter(item => !item.deletedAt)
+        .reduce((acc, item) => acc + Number(item.price), 0);
+    }, 0);
+
+    return ctx.send({
+      totalProducts: filteredProducts.length,
+      totalRevenue,
+      products: stats,
+    });
+
+  } catch (err) {
+    return ctx.badRequest(err.message);
+  }
+}
 
 
 };

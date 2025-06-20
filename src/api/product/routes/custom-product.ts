@@ -8,6 +8,14 @@ export default {
                 auth: false,
             }
         },
+        {
+            method: 'GET',
+            path: '/products/order/:productId',
+            handler: 'product.getOrderItemsForProduct',
+            config: {
+                auth: false,
+            }
+        },
                 { 
             method: 'GET', 
             path: '/products/detail/:id', 
