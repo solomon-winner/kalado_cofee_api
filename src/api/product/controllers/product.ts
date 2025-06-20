@@ -1,7 +1,7 @@
 import { verifyToken } from '../../../utils/dto/verify-token';
 const { ProductDTO, ProductListDTO } = require('../../../utils/dto/product/productDto');
 const { OrderItemListDTO } = require('../../../utils/dto/order/orderItem');
-
+const { getPagination } = require('../../../utils/pagination/getPagination');
 export default {
   // the two controllers below are the same but for different users
   async getProductForRetailer(ctx) {
@@ -70,42 +70,48 @@ async getOrderItemsForProduct(ctx) {
     return ctx.badRequest(err.message);
   }
 },
+async getProducts(ctx) {
+  try {
+    const decoded = verifyToken(ctx);
+    const user = await strapi.db.query('api::app-user.app-user').findOne({
+      where: { id: decoded.id, deletedAt: null },
+    });
 
-  async getProducts(ctx) {
-    try {
-      const decoded = verifyToken(ctx);
-      const user = await strapi.db.query('api::app-user.app-user').findOne({
-        where: { id: decoded.id, deletedAt: null },
-      });
-      if (user?.type == 'customer') {
-                    const products = await strapi.entityService.findMany('api::product.product', {
-              filters: { deletedAt: null },
-              populate: {
-                images: true, // full population or customize similarly if needed
-                retailer: {
-                  fields: ['id', 'name'], // only get these fields from retailer
-                },
-              },
-              sort: { createdAt: 'desc' },
-              pagination: {
-                page: ctx.query.page ? parseInt(ctx.query.page, 10) : 1,
-                pageSize: ctx.query.pageSize ? parseInt(ctx.query.pageSize, 10) : 10,
-              },
-              fields: ['id', 'name', 'price', 'quantity', 'discount', 'isPopular'], // specify which fields to fetch
-             // product fields
-            });
+    const filters = user?.type === 'customer'
+      ? { deletedAt: null }
+      : { retailer: decoded.id };
 
-            return ctx.send(ProductListDTO(products));
-          }
-          
-      const products = await strapi.entityService.findMany('api::product.product',{
-        filters: { retailer: decoded.id },
-      });
-      return ctx.send(ProductListDTO(products));
-    } catch (err) {
-      return ctx.badRequest(err.message);
-    }
-  },
+    // Step 1: Count total
+    const total = await strapi.entityService.count('api::product.product', {
+      filters,
+    });
+
+    // Step 2: Use your helper to get meta and pagination
+    const { pagination, page, pageSize } = getPagination(ctx, total);
+
+    // Step 3: Fetch paginated data
+    const products = await strapi.entityService.findMany('api::product.product', {
+      filters,
+      sort: { createdAt: 'desc' },
+      pagination: { page: pagination.page, pageSize: pagination.pageSize },
+      populate: {
+        images: true,
+        retailer: {
+          fields: ['id', 'name'],
+        },
+      },
+      fields: ['id', 'name', 'price', 'quantity', 'discount', 'isPopular'],
+    });
+
+    return ctx.send({
+      data: products,
+      meta: { pagination }
+    });
+
+  } catch (err) {
+    return ctx.badRequest(err.message);
+  }
+},
 
   async addProduct(ctx) {
     try {
