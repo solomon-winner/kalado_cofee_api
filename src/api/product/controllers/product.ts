@@ -331,5 +331,4 @@ async statForRetailer(ctx) {
   }
 }
 
-
 };

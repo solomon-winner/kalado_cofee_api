@@ -373,16 +373,16 @@ async recentPurchases(ctx) {
       },
       sort: [{ orderedAt: 'desc' }],
       limit,
-      populate: {
-        order_items: {
-          populate: ['product'],
-        },
-      },
+      // populate: {
+      //   order_items: {
+      //     populate: ['product'],
+      //   },
+      //},
     });
 
     return ctx.send({
       message: 'Recent purchases retrieved successfully',
-      orders,
+      orders: OrderListDTO(orders),
     });
 
   } catch (err) {
@@ -413,14 +413,13 @@ async getOrderById(ctx) {
 
     return ctx.send({
       message: 'Order retrieved successfully',
-      order,
+      order: new OrderDTO(order),
     });
   } catch (err) {
     console.error(err);
     return ctx.badRequest("Failed to fetch order");
   }
 },
-
 
 async getOrderStatistics(ctx) {
   try {
@@ -503,7 +502,7 @@ async getRetailerOrders(ctx) {
 
     return ctx.send({
       message: 'Retailer orders retrieved successfully',
-      orders,
+      orders: OrderListDTO(orders),
     });
   } catch (err) {
     console.error(err);
