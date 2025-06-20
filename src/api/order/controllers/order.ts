@@ -6,6 +6,7 @@ import { factories } from '@strapi/strapi'
 import { verifyToken } from '../../../utils/dto/verify-token';
 import { PopulatedOrderItem } from '../type/order_schems_type'; // Adjust the import path as necessary
 import { startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format, subMonths, subYears } from 'date-fns';
+import { getPagination } from '../../../utils/pagination/getPagination';
 const {OrderDTO, OrderListDTO} = require('../../../utils/dto/order/orderDto');
 const { OrderItemDTO, OrderItemListDTO } = require('../../../utils/dto/order/orderItem');
 const { CartItemDto, CartItemListDTO } = require('../../../utils/dto/cart/cartItem');
@@ -100,6 +101,7 @@ async addToCart(ctx) {
 },
 //this is for the customer
 async getMyOrders(ctx) {
+  
   try {
     const decoded = verifyToken(ctx);
     const userId = decoded.id;
@@ -127,10 +129,17 @@ async getMyOrders(ctx) {
     orders.forEach(order => {
       (order as { order_items?: any[] }).order_items = (order as any).order_items?.length || 0;
     });
+      const total = await strapi.entityService.count('api::order.order', {
+          filters,
+        });
+    
+        // Step 2: Use your helper to get meta and pagination
+        const pagination  = getPagination(ctx, total);
     
     return ctx.send({
       message: 'Orders retrieved successfully',
       orders: OrderListDTO(orders),
+      meta: { pagination }
     });
   } catch (err) {
     console.error(err);
@@ -499,9 +508,16 @@ async getRetailerOrders(ctx) {
         },
       },
     });
-
+      const total = await strapi.entityService.count('api::order.order', {
+          filters,
+        });
+    
+        // Step 2: Use your helper to get meta and pagination
+        const pagination  = getPagination(ctx, total);
+    
     return ctx.send({
       message: 'Retailer orders retrieved successfully',
+      meta: { pagination },
       orders: OrderListDTO(orders),
     });
   } catch (err) {

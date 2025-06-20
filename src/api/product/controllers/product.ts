@@ -1,7 +1,8 @@
 import { verifyToken } from '../../../utils/dto/verify-token';
 const { ProductDTO, ProductListDTO } = require('../../../utils/dto/product/productDto');
 const { OrderItemListDTO } = require('../../../utils/dto/order/orderItem');
-const { getPagination } = require('../../../utils/pagination/getPagination');
+import  { getPagination } from '../../../utils/pagination/getPagination';
+
 export default {
   // the two controllers below are the same but for different users
   async getProductForRetailer(ctx) {
@@ -64,8 +65,14 @@ async getOrderItemsForProduct(ctx) {
     const orderItems = await strapi.db.query('api::order-item.order-item').findMany({
       where: { product: productId },
     });
+    const total = await strapi.entityService.count('api::order-item.order-item', {
+      filters: { product: productId },
+    });
 
-    return ctx.send(OrderItemListDTO(orderItems));
+    // Step 2: Use your helper to get meta and pagination
+    const pagination  = getPagination(ctx, total);
+
+    return ctx.send({ data: OrderItemListDTO(orderItems), meta: { pagination } });
   } catch (err) {
     return ctx.badRequest(err.message);
   }
@@ -87,7 +94,7 @@ async getProducts(ctx) {
     });
 
     // Step 2: Use your helper to get meta and pagination
-    const { pagination, page, pageSize } = getPagination(ctx, total);
+    const pagination  = getPagination(ctx, total);
 
     // Step 3: Fetch paginated data
     const products = await strapi.entityService.findMany('api::product.product', {
@@ -104,7 +111,7 @@ async getProducts(ctx) {
     });
 
     return ctx.send({
-      data: products,
+      data: ProductListDTO(products),
       meta: { pagination }
     });
 
@@ -269,12 +276,19 @@ async deleteManyProducts(ctx) {
         filters.isPopular = isPopular === 'true';
       }
 
+      const total = await strapi.entityService.count('api::product.product', {
+      filters,
+    });
+
+    // Step 2: Use your helper to get meta and pagination
+    const pagination  = getPagination(ctx, total);
+
       const products = await strapi.db.query('api::product.product').findMany({
         where: filters,
         orderBy: { createdAt: 'desc' },
         populate: ['images', 'retailer'], // populate images and retailer
       });
-      return ctx.send(ProductListDTO(products));
+      return ctx.send({ data: ProductListDTO(products), meta: { pagination } });
     } catch (err) {
       return ctx.badRequest(err.message);
     }
@@ -291,8 +305,14 @@ async deleteManyProducts(ctx) {
         where: { retailer: retailerId },
         populate: ['images', 'order_items'],
       });
+    const total = await strapi.entityService.count('api::product.product', {
+      filters: { retailer: retailerId }
+    });
 
-      return ctx.send(ProductListDTO(products));
+    // Step 2: Use your helper to get meta and pagination
+    const pagination  = getPagination(ctx, total);
+
+      return ctx.send({ data: ProductListDTO(products), meta: { pagination } });
     } catch (err) {
       return ctx.badRequest(err.message);
     }
