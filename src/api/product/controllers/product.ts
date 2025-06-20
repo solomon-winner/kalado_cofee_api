@@ -99,7 +99,7 @@ async getOrderItemsForProduct(ctx) {
       const products = await strapi.entityService.findMany('api::product.product',{
         filters: { retailer: decoded.id },
       });
-      return ctx.send(products);
+      return ctx.send(ProductListDTO(products));
     } catch (err) {
       return ctx.badRequest(err.message);
     }
