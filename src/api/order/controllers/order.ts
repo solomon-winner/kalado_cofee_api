@@ -593,6 +593,46 @@ async getSalesReport(ctx) {
     console.error(err);
     return ctx.badRequest("Failed to generate sales report");
   }
+},
+
+async getTopRetailers(ctx) {
+  try {
+    // Step 1: Get all paid, not-deleted orders
+    const paidOrders = await strapi.db.query('api::order.order').findMany({
+      where: {
+        paymentStatus: 'paid',
+        deletedAt: null,
+      },
+      populate: {
+        retailer: true,
+      }
+    });
+
+    // Step 2: Aggregate revenue per retailer
+    const revenueMap = new Map();
+
+    for (const order of paidOrders) {
+      const retailerId = order.retailer?.id;
+      const retailerName = order.retailer?.name;
+      if (!retailerId) continue;
+
+      const prev = revenueMap.get(retailerId) || { id: retailerId, name: retailerName, totalRevenue: 0, orderCount: 0 };
+      prev.totalRevenue += Number(order.total_amount);
+      prev.orderCount += 1;
+
+      revenueMap.set(retailerId, prev);
+    }
+
+    // Step 3: Convert to array, sort by revenue, and get top 5
+    const topRetailers = [...revenueMap.values()]
+      .sort((a, b) => b.totalRevenue - a.totalRevenue)
+      .slice(0, 5);
+
+    return ctx.send({ topRetailers });
+
+  } catch (err) {
+    return ctx.badRequest(err.message);
+  }
 }
 
 }));
