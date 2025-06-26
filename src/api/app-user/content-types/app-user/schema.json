@@ -35,7 +35,8 @@
       "enum": [
         "customer",
         "retailer",
-        "blogger"
+        "blogger",
+        "admin"
       ]
     },
     "products": {

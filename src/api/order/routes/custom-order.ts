@@ -98,5 +98,13 @@ export default {
                auth: false,
            }
         },
+        {
+            method: 'GET',
+            path: '/order/top-retailers',
+            handler: 'order.getTopRetailers',
+            config: {
+                auth: false,
+            }
+        }
     ]
 }
