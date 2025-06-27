@@ -27,6 +27,14 @@
       "type": "decimal",
       "required": true
     },
+    "currency": {
+      "type": "string",
+      "default": "USD",
+      "required": true
+    },
+    "final_amount": {
+      "type": "decimal"
+    },
     "orderedAt": {
       "type": "datetime",
       "required": true
@@ -70,14 +78,34 @@
     },
     "paymentMethod": {
       "type": "enumeration",
-      "default": "online",
+      "default": "unpaid",
       "enum": [
-        "online",
-        "COD"
+        "paypal",
+        "stripe",
+        "COD",
+        "unpaid"
       ]
+    },
+    "tax_amount": {
+      "type": "decimal",
+      "default": 0
+    },
+    "shippment_cost": {
+      "type": "decimal",
+      "default": 0
+    },
+    "discount_amount": {
+      "type": "decimal",
+      "default": 0
     },
     "paidAt": {
       "type": "datetime"
+    },
+    "purchase_history": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::purchase-history.purchase-history",
+      "mappedBy": "order"
     }
   }
 }

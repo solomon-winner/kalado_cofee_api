@@ -77,6 +77,12 @@
       "relation": "oneToMany",
       "target": "api::order.order",
       "mappedBy": "retailer"
+    },
+    "purchase_histories": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::purchase-history.purchase-history",
+      "mappedBy": "customer"
     }
   }
 }

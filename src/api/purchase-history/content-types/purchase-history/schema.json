@@ -1,0 +1,55 @@
+{
+  "kind": "collectionType",
+  "collectionName": "purchase_histories",
+  "info": {
+    "singularName": "purchase-history",
+    "pluralName": "purchase-histories",
+    "displayName": "purchase_history"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "customer": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::app-user.app-user",
+      "inversedBy": "purchase_histories"
+    },
+    "order": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::order.order",
+      "inversedBy": "purchase_history"
+    },
+    "totalPrice": {
+      "type": "decimal"
+    },
+    "tax": {
+      "type": "decimal"
+    },
+    "shippment_cost": {
+      "type": "decimal",
+      "min": 0
+    },
+    "discount_amount": {
+      "type": "decimal",
+      "min": 0
+    },
+    "payment_method": {
+      "type": "enumeration",
+      "enum": [
+        "paypal",
+        "stripe"
+      ]
+    },
+    "paypalCaptureId": {
+      "type": "string"
+    },
+    "paidAt": {
+      "type": "datetime",
+      "required": true
+    }
+  }
+}

@@ -444,6 +444,10 @@ export interface ApiAppUserAppUser extends Struct.CollectionTypeSchema {
     phone: Schema.Attribute.String & Schema.Attribute.Required;
     products: Schema.Attribute.Relation<'oneToMany', 'api::product.product'>;
     publishedAt: Schema.Attribute.DateTime;
+    purchase_histories: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::purchase-history.purchase-history'
+    >;
     resetPasswordToken: Schema.Attribute.String;
     resetTokenExpiry: Schema.Attribute.DateTime;
     retailer_orders: Schema.Attribute.Relation<'oneToMany', 'api::order.order'>;
@@ -451,7 +455,9 @@ export interface ApiAppUserAppUser extends Struct.CollectionTypeSchema {
       'oneToMany',
       'api::shippment-address.shippment-address'
     >;
-    type: Schema.Attribute.Enumeration<['customer', 'retailer', 'blogger']> &
+    type: Schema.Attribute.Enumeration<
+      ['customer', 'retailer', 'blogger', 'admin']
+    > &
       Schema.Attribute.DefaultTo<'customer'>;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
@@ -484,6 +490,36 @@ export interface ApiBlogBlog extends Struct.CollectionTypeSchema {
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     writer: Schema.Attribute.Relation<'manyToOne', 'api::app-user.app-user'>;
+  };
+}
+
+export interface ApiConstantConstant extends Struct.CollectionTypeSchema {
+  collectionName: 'constants';
+  info: {
+    displayName: 'constant';
+    pluralName: 'constants';
+    singularName: 'constant';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    discount: Schema.Attribute.Decimal;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::constant.constant'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    shippment_cost: Schema.Attribute.Decimal;
+    tax: Schema.Attribute.Decimal;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
   };
 }
 
@@ -598,8 +634,13 @@ export interface ApiOrderOrder extends Struct.CollectionTypeSchema {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    currency: Schema.Attribute.String &
+      Schema.Attribute.Required &
+      Schema.Attribute.DefaultTo<'USD'>;
     customer: Schema.Attribute.Relation<'manyToOne', 'api::app-user.app-user'>;
     deletedAt: Schema.Attribute.DateTime;
+    discount_amount: Schema.Attribute.Decimal & Schema.Attribute.DefaultTo<0>;
+    final_amount: Schema.Attribute.Decimal;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<'oneToMany', 'api::order.order'> &
       Schema.Attribute.Private;
@@ -609,23 +650,31 @@ export interface ApiOrderOrder extends Struct.CollectionTypeSchema {
     >;
     orderedAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
     paidAt: Schema.Attribute.DateTime;
-    paymentMethod: Schema.Attribute.Enumeration<['online', 'COD']> &
-      Schema.Attribute.DefaultTo<'online'>;
+    paymentMethod: Schema.Attribute.Enumeration<
+      ['paypal', 'stripe', 'COD', 'unpaid']
+    > &
+      Schema.Attribute.DefaultTo<'unpaid'>;
     paymentStatus: Schema.Attribute.Enumeration<
       ['unpaid', 'paid', 'refunded']
     > &
       Schema.Attribute.DefaultTo<'unpaid'>;
     phoneNumber: Schema.Attribute.String;
     publishedAt: Schema.Attribute.DateTime;
+    purchase_history: Schema.Attribute.Relation<
+      'oneToOne',
+      'api::purchase-history.purchase-history'
+    >;
     retailer: Schema.Attribute.Relation<'manyToOne', 'api::app-user.app-user'>;
     shippment_address: Schema.Attribute.Relation<
       'manyToOne',
       'api::shippment-address.shippment-address'
     >;
+    shippment_cost: Schema.Attribute.Decimal & Schema.Attribute.DefaultTo<0>;
     status: Schema.Attribute.Enumeration<
       ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled']
     > &
       Schema.Attribute.DefaultTo<'pending'>;
+    tax_amount: Schema.Attribute.Decimal & Schema.Attribute.DefaultTo<0>;
     total_amount: Schema.Attribute.Decimal & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
@@ -651,6 +700,14 @@ export interface ApiProductProduct extends Struct.CollectionTypeSchema {
     deletedAt: Schema.Attribute.DateTime;
     description: Schema.Attribute.Text & Schema.Attribute.Required;
     discount: Schema.Attribute.Decimal &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0;
+        },
+        number
+      >;
+    final_price: Schema.Attribute.Decimal &
+      Schema.Attribute.Required &
       Schema.Attribute.SetMinMax<
         {
           min: 0;
@@ -690,6 +747,55 @@ export interface ApiProductProduct extends Struct.CollectionTypeSchema {
       >;
     retailer: Schema.Attribute.Relation<'manyToOne', 'api::app-user.app-user'>;
     tags: Schema.Attribute.JSON;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiPurchaseHistoryPurchaseHistory
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'purchase_histories';
+  info: {
+    displayName: 'purchase_history';
+    pluralName: 'purchase-histories';
+    singularName: 'purchase-history';
+  };
+  options: {
+    draftAndPublish: false;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    customer: Schema.Attribute.Relation<'manyToOne', 'api::app-user.app-user'>;
+    discount_amount: Schema.Attribute.Decimal &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0;
+        },
+        number
+      >;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::purchase-history.purchase-history'
+    > &
+      Schema.Attribute.Private;
+    order: Schema.Attribute.Relation<'oneToOne', 'api::order.order'>;
+    paidAt: Schema.Attribute.DateTime & Schema.Attribute.Required;
+    payment_method: Schema.Attribute.Enumeration<['paypal', 'stripe']>;
+    paypalCaptureId: Schema.Attribute.String;
+    publishedAt: Schema.Attribute.DateTime;
+    shippment_cost: Schema.Attribute.Decimal &
+      Schema.Attribute.SetMinMax<
+        {
+          min: 0;
+        },
+        number
+      >;
+    tax: Schema.Attribute.Decimal;
+    totalPrice: Schema.Attribute.Decimal;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -1285,11 +1391,13 @@ declare module '@strapi/strapi' {
       'admin::user': AdminUser;
       'api::app-user.app-user': ApiAppUserAppUser;
       'api::blog.blog': ApiBlogBlog;
+      'api::constant.constant': ApiConstantConstant;
       'api::customer-profile.customer-profile': ApiCustomerProfileCustomerProfile;
       'api::message.message': ApiMessageMessage;
       'api::order-item.order-item': ApiOrderItemOrderItem;
       'api::order.order': ApiOrderOrder;
       'api::product.product': ApiProductProduct;
+      'api::purchase-history.purchase-history': ApiPurchaseHistoryPurchaseHistory;
       'api::shipment-method.shipment-method': ApiShipmentMethodShipmentMethod;
       'api::shippment-address.shippment-address': ApiShippmentAddressShippmentAddress;
       'plugin::content-releases.release': PluginContentReleasesRelease;

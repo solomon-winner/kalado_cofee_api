@@ -1,0 +1,24 @@
+{
+  "kind": "collectionType",
+  "collectionName": "constants",
+  "info": {
+    "singularName": "constant",
+    "pluralName": "constants",
+    "displayName": "constant"
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "tax": {
+      "type": "decimal"
+    },
+    "shippment_cost": {
+      "type": "decimal"
+    },
+    "discount": {
+      "type": "decimal"
+    }
+  }
+}

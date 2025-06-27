@@ -123,10 +123,10 @@ async getProducts(ctx) {
   async addProduct(ctx) {
     try {
       const decoded = verifyToken(ctx);
-      const data = ctx.request.body;
+      const data = { ...ctx.request.body, final_price: ctx.request.body.price < ctx.request.body.discount ? ctx.request.body.price : ctx.request.body.price - ctx.request.body.discount };
       data.retailer = decoded.id;
 
-      const created = await strapi.entityService.create('api::product.product', { data });
+      const created = await strapi.entityService.create('api::product.product', data);
       return ctx.send(new ProductDTO(created));
     } catch (err) {
       return ctx.badRequest(err.message);
@@ -141,7 +141,7 @@ async getProducts(ctx) {
       const createdProducts = await Promise.all(
         products.map(product =>
           strapi.entityService.create('api::product.product', {
-            data: { ...product, retailer: decoded.id },
+            data: { ...product, retailer: decoded.id, final_price: product.price < product.discount ? product.price : product.price - product.discount },
           })
         )
       );
@@ -163,7 +163,11 @@ async updateProduct(ctx) {
 
     if (!existing || existing.retailer.id !== decoded.id)
       return ctx.unauthorized('Not allowed');
-
+    if (body.price < body.discount) {
+      body.final_price = body.price;
+    } else {
+      body.final_price = body.price - body.discount;
+    }
     const updated = await strapi.entityService.update('api::product.product', id, {
       data: body,
     });

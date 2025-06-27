@@ -66,8 +66,12 @@
       "type": "json"
     },
     "deletedAt": {
-      "type": "datetime",
-      "default": null
+      "type": "datetime"
+    },
+    "final_price": {
+      "type": "decimal",
+      "required": true,
+      "min": 0
     }
   }
 }

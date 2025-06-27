@@ -10,6 +10,9 @@ import { getPagination } from '../../../utils/pagination/getPagination';
 const {OrderDTO, OrderListDTO} = require('../../../utils/dto/order/orderDto');
 const { OrderItemDTO, OrderItemListDTO } = require('../../../utils/dto/order/orderItem');
 const { CartItemDto, CartItemListDTO } = require('../../../utils/dto/cart/cartItem');
+import { paypalClient } from "../../../utils/paymentConfiguration/paypal"; 
+import paypal from "@paypal/checkout-server-sdk";
+import { CalculatePrice } from '../../../utils/calculation/price';
 
 export default factories.createCoreController('api::order.order', ({ strapi }) => ({
   //this is the controller for the order API intended for managing orders and cart items for customers
@@ -37,7 +40,6 @@ async addToCart(ctx) {
 
     const unitPrice = product.price;
     const totalPrice = unitPrice * quantity;
-
     // 2. Check for existing pending order
     let [pendingOrder] = await strapi.entityService.findMany("api::order.order", {
       filters: {
@@ -57,6 +59,10 @@ async addToCart(ctx) {
           total_amount: totalPrice,
           orderedAt: new Date().toISOString(),
           status: "pending",
+          currency: "USD", // or your default currency
+          // final_amount: totalPrice + tax + shippingCost - discount,
+          paymentStatus: "unpaid",
+          paymentMethod: "unpaid", // or your default payment method
         }
       });
     } else {
@@ -87,11 +93,31 @@ async addToCart(ctx) {
         totalPrice,
       }
     });
+    const constant  = await strapi.entityService.findMany("api::constant.constant");
+    if (!constant || constant.length === 0) {
+      return ctx.badRequest("No constants found in the database");
+    }
+    const shippingCost = constant[0].shippment_cost || null; // Default shipping cost
+    const tax = constant[0].tax || 0.05; // Default tax rate
+    const discount = product.discount || 0; // Default discount
+    // Calculate final amount
+     const calculated = CalculatePrice(
+      [{ price: orderItem.unitPrice, quantity: orderItem.quantity }],
+      tax,
+      discount
+    );
+    const finalAmount = calculated.finalPrice;
 
     return ctx.send({
       message: 'Item added to cart (not confirmed until payment)',
       orderId: pendingOrder.id,
       orderItem: new OrderItemDTO(orderItem),
+      constants: {
+        shippingCost,
+        tax,
+        discount,
+        finalAmount,
+      }
     });
 
   } catch (err) {
@@ -165,11 +191,27 @@ async getCartItems(ctx) {
     }) as any[]; // Type assertion to handle the case where no orders are found
 
     if (!pendingOrder) return ctx.send({ message: "No items in cart", cart: [] });
+    const [constants] = await strapi.entityService.findMany("api::constant.constant");
+    if (!constants) {
+      return ctx.badRequest("No constants found in the database");
+    }
+    const shippingCost = constants.shippment_cost || null; // Default shipping cost
+    const tax = constants.tax || 0.05; // Default tax rate
+    const discount = constants.discount || 0; // Default discount
+    // Calculate final amount
+    const calculated = CalculatePrice(
+      pendingOrder.order_items.map(item => ({ price: item.final_price, quantity: item.quantity })),
+      tax,
+      discount
+    );
+    const finalAmount = calculated.finalPrice;
 
     return ctx.send({
       message: "Your cart",
       cart: CartItemListDTO(pendingOrder.order_items),
-      totalAmount: pendingOrder.total_amount,
+      totalAmount: finalAmount,
+      shippingCost,
+      tax,
     });
 
   } catch (err) {
@@ -274,61 +316,179 @@ async removeItemFromCart(ctx) {
     return ctx.badRequest("Failed to remove item from cart");
   }
 },
+
 async checkoutOrder(ctx) {
   try {
     const decoded = verifyToken(ctx);
     const userId = decoded.id;
     const { orderId } = ctx.params;
 
-    // 1. Fetch the order and order_items
+    // 1. Fetch order and relationships
     const order = await strapi.entityService.findOne("api::order.order", orderId, {
       populate: ['order_items', 'customer', 'shippment_address'],
     }) as any;
-
+    const [constants] = await strapi.entityService.findMany("api::constant.constant");
     if (!order || order.customer.id !== userId || order.status !== 'pending') {
       return ctx.badRequest("Invalid order");
     }
 
-    // 2. Calculate base total from items
-    const baseTotal = order.order_items.reduce((sum, item) => sum + Number(item.totalPrice), 0);
+    // 2. Prepare data for calculation
+    const itemsForCalc = order.order_items.map((item) => ({
+      price: Number(item.unitPrice),
+      quantity: Number(item.quantity),
+    }));
 
-    // 3. Calculate tax, shipping, and discount dynamically
-    const shippingCost = 50; // You can also calculate based on address
-    const tax = baseTotal * 0.05; // 5% VAT
-    const discount = 0; // Add logic based on coupons or promo
+    const shippingCost = constants?.shippment_cost || 50;
+    const taxRate = constants?.tax || 0.05;
+    const discountRate = constants?.discount || 0; // e.g., 0.10 for 10% discount
 
-    const finalTotal = baseTotal + tax + shippingCost - discount;
+    // 3. Calculate pricing using utility
+    const { totalPrice: baseTotal, tax, finalPrice: subtotalPlusTax } = CalculatePrice(
+      itemsForCalc,
+      taxRate,
+      discountRate
+    );
 
-    // 4. Update order
-    const updatedOrder = await strapi.entityService.update("api::order.order", orderId, {
+    const finalTotal = subtotalPlusTax + shippingCost;
+
+    // 4. Update the order in DB
+    await strapi.entityService.update("api::order.order", orderId, {
       data: {
         total_amount: baseTotal,
-        tax,
-        shippingCost,
-        discount,
-        finalTotal,
+        tax_amount: tax,
+        shippment_cost: shippingCost,
+        discount_amount: baseTotal * discountRate,
+        final_amount: finalTotal,
       }
     });
 
-    // 5. Return full summary to frontend
+    // 5. Create PayPal order
+    const request = new paypal.orders.OrdersCreateRequest();
+    request.prefer("return=representation");
+    request.requestBody({
+      intent: "CAPTURE",
+      purchase_units: [{
+        reference_id: `ORDER-${order.id}`,
+        amount: {
+          currency_code: "USD",
+          value: finalTotal.toFixed(2),
+          breakdown: {
+            item_total: {
+              currency_code: "USD",
+              value: baseTotal.toFixed(2),
+            },
+            shipping: {
+              currency_code: "USD",
+              value: shippingCost.toFixed(2),
+            },
+            tax_total: {
+              currency_code: "USD",
+              value: tax.toFixed(2),
+            },
+            discount: {
+              currency_code: "USD",
+              value: (baseTotal * discountRate).toFixed(2),
+            }
+          }
+        }
+      }],
+      application_context: {
+        brand_name: "Kalado Coffee",
+        landing_page: "LOGIN",
+        user_action: "PAY_NOW",
+        return_url: "https://kalado-coffee.vercel.app/paypal-success",
+        cancel_url: "https://kalado-coffee.vercel.app/paypal-cancel"
+      }
+    });
+
+    const paypalRes = await paypalClient().execute(request);
+
+    // 6. Send response
+    const approvalUrl = paypalRes.result.links.find(link => link.rel === "approve")?.href;
+
     return ctx.send({
-      message: "Checkout summary",
+      message: "PayPal order created",
+      orderId: order.id,
       summary: {
-        baseTotal,
+        baseTotal: Number(baseTotal.toFixed(2)),
         shippingCost,
-        tax,
-        discount,
-        finalTotal,
+        tax: Number(tax.toFixed(2)),
+        discount: Number((baseTotal * discountRate).toFixed(2)),
+        finalTotal: Number(finalTotal.toFixed(2)),
       },
-      orderId: order.id
+      paypalOrderId: paypalRes.result.id,
+      approvalUrl
     });
 
   } catch (err) {
-    console.error(err);
+    console.error("Checkout error:", err);
     return ctx.badRequest("Checkout failed");
   }
 },
 
+async capturePayPalOrder(ctx) {
+  try {
+    const decoded = verifyToken(ctx);
+    const userId = decoded.id;
+    const { paypalOrderId } = ctx.params;
+
+    // 1. Capture PayPal order
+    const request = new paypal.orders.OrdersCaptureRequest(paypalOrderId);
+    request.requestBody({});
+    const capture = await paypalClient().execute(request);
+
+    const status = capture.result.status;
+    const paypalCaptureId = capture.result.id;
+    const capturedOrder = capture.result.purchase_units[0];
+    const referenceId = capturedOrder.reference_id;
+    const strapiOrderId = referenceId?.split("ORDER-")[1];
+
+    if (!strapiOrderId) {
+      return ctx.badRequest("Invalid reference ID");
+    }
+
+    // 2. Update order
+    const updatedOrder = await strapi.entityService.update("api::order.order", strapiOrderId, {
+      data: {
+        status: status === "COMPLETED" ? "confirmed" : "pending",
+        paymentStatus: status === "COMPLETED" ? "paid" : "unpaid",
+        paidAt: status === "COMPLETED" ? new Date().toISOString() : null,
+        paymentMethod: "paypal",
+      }
+    });
+
+    if (!updatedOrder) {
+      return ctx.badRequest("Failed to update order");
+    }
+
+    // 3. Create purchase history record
+    const purchaseHistory = await strapi.entityService.create("api::purchase-history.purchase-history", {
+      data: {
+        order: updatedOrder.id,
+        customer: userId,
+        totalPrice: updatedOrder.final_amount || 0,
+        tax: updatedOrder.tax_amount || 0,
+        shippment_cost: updatedOrder.shippment_cost || 0,
+        discount_amount: updatedOrder.discount_amount || 0,
+        payment_method: "paypal",
+        paypalCaptureId,
+        paidAt: new Date().toISOString()
+      }
+    });
+
+    return ctx.send({
+      message: "Payment captured and history saved",
+      paypalStatus: status,
+      order: updatedOrder,
+      purchaseHistory,
+    });
+
+  } catch (err) {
+    console.error("PayPal capture error:", err);
+    return ctx.badRequest("Payment capture failed");
+  }
+}
+,
 // this is the controller for the order API intended for managing orders and cart items for retailers
 
 // async getRetailerOrderDetails(ctx) {},
