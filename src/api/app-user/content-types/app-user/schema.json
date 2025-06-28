@@ -45,6 +45,9 @@
       "target": "api::product.product",
       "mappedBy": "retailer"
     },
+    "business_name": {
+      "type": "string"
+    },
     "orders": {
       "type": "relation",
       "relation": "oneToMany",

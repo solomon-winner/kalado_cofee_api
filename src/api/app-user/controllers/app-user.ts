@@ -13,11 +13,12 @@ import sendEmailService from '../../my-service/controllers/email-service';
 export default factories.createCoreController('api::app-user.app-user', ({ strapi }) => ({
 
   async register(ctx) {
-    const { email, password, name, phone,type } = ctx.request.body;
+    const { email, password, name, phone,type, business_name } = ctx.request.body;
 
     if (!email || !password) {
       return ctx.badRequest('Email and password are required');
     }
+
 
     // Check if email already exists
     const existingUsers = await strapi.entityService.findMany('api::app-user.app-user', {
@@ -27,16 +28,29 @@ export default factories.createCoreController('api::app-user.app-user', ({ strap
     if (existingUsers.length > 0) {
       return ctx.conflict('Email already in use');
     }
-
+    const data: {
+      email: any;
+      phone: any;
+      password: any;
+      name: any;
+      type: any;
+      business_name?: any;
+    } = {
+      email,
+      phone,
+      password,
+      name,
+      type,
+    }
+    if (type === 'business' && !business_name) {
+      return ctx.badRequest('Business name is required for business accounts');
+    }
+    if (business_name) {
+      data.business_name = business_name;
+    }
     // Create new user
     const newUser = await strapi.entityService.create('api::app-user.app-user', {
-      data: {
-        email,
-        phone,
-        password,
-        name,
-        type
-      },
+      data: data,
     });
 
     return ctx.created({ user: appUserDTO(newUser)});
@@ -82,7 +96,26 @@ async getUser(ctx) {
     return ctx.unauthorized(err.message || 'Unauthorized');
   }
 },
-
+async getRetailers(ctx) {
+try {
+  const decoded = verifyToken(ctx); // Ensure the user is authenticated
+  if (!decoded) {
+    return ctx.unauthorized('Invalid token');
+  }
+  if (decoded.type !== 'admin') {
+    return ctx.unauthorized('You are not authorized to access this resource');
+  }
+  const retailers = await strapi.db.query('api::app-user.app-user').findMany({
+    where: { type: 'retailer', deletedAt: null },
+    select: ['id', 'name'],
+  });
+  return ctx.send({ retailers: retailers.map(appUserDTO) });
+  
+} catch (error) {
+  strapi.log.error('Get retailers error:', error);
+  return ctx.unauthorized(error.message || 'Unauthorized');
+}
+},
 async updateme(ctx) {
   try {
     const decoded = verifyToken(ctx);

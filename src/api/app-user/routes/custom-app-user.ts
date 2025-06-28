@@ -9,6 +9,14 @@ export default {
       },
     },
     {
+      method: 'GET',
+      path: '/app-users/get-retailers',
+      handler: 'app-user.getRetailers',
+      config: {
+        auth: false,
+      },
+    },
+    {
       method: 'POST',
       path: '/app-users/register',
       handler: 'app-user.register',
