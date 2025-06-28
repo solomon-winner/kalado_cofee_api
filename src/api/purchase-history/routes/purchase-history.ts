@@ -2,6 +2,6 @@
  * purchase-history router
  */
 
-import { factories } from '@strapi/strapi';
+// import { factories } from '@strapi/strapi';
 
-export default factories.createCoreRouter('api::purchase-history.purchase-history');
+// export default factories.createCoreRouter('api::purchase-history.purchase-history');
