@@ -436,6 +436,7 @@ export interface ApiAppUserAppUser extends Struct.CollectionTypeSchema {
       'api::app-user.app-user'
     > &
       Schema.Attribute.Private;
+    location: Schema.Attribute.String;
     name: Schema.Attribute.String & Schema.Attribute.Required;
     orders: Schema.Attribute.Relation<'oneToMany', 'api::order.order'>;
     password: Schema.Attribute.Password &

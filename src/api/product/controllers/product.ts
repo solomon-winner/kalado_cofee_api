@@ -152,21 +152,45 @@ async getProductsForUser(ctx) {
   }
 },
 
-  async addProduct(ctx) {
-    try {
-      const decoded = verifyToken(ctx);
-      if (decoded.type !== 'admin') {
-        return ctx.unauthorized('Only retailers can add products');
-      }
-      const data = { ...ctx.request.body, final_price: ctx.request.body.price < ctx.request.body.discount ? ctx.request.body.price : ctx.request.body.price - ctx.request.body.discount };
-
-      const created = await strapi.entityService.create('api::product.product', data);
-      return ctx.send(new ProductDTO(created));
-    } catch (err) {
-      return ctx.badRequest(err.message);
+async addProduct(ctx) {
+  try {
+    const decoded = verifyToken(ctx);
+    if (decoded.type !== 'admin') {
+      return ctx.unauthorized('Only admins can add products');
     }
-  },
-  
+
+    const { name, price, quantity, description, discount = 0, retailer } = ctx.request.body;
+
+    if (!name || !price || !quantity || !description || !retailer) {
+      return ctx.badRequest('Missing required fields');
+    }
+
+    const retailerExists = await strapi.entityService.findOne('api::app-user.app-user', retailer);
+    if (!retailerExists) {
+      return ctx.badRequest('Retailer not found');
+    }
+
+    const final_price = price < discount ? price : price - discount;
+
+    const data = {
+      name,
+      price,
+      quantity,
+      description,
+      discount,
+      final_price,
+      retailer
+    };
+
+    const created = await strapi.entityService.create('api::product.product', { data });
+
+    return ctx.send(new ProductDTO(created));
+  } catch (err) {
+    console.error('Error in addProduct:', err);
+    return ctx.badRequest(err.message || 'Failed to create product');
+  }
+},
+
   async addProductWithImages(ctx) {},
   async addManyProducts(ctx) {
     try {
