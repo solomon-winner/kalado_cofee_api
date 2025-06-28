@@ -2,7 +2,7 @@ export default {
     routes: [
             {
             method: 'GET',
-            path: '/products/',
+            path: '/products',
             handler: 'product.getProductsForUser',
             config: {
                 auth: false,

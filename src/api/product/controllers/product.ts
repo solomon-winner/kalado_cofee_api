@@ -119,7 +119,7 @@ async getProductsForRetailer(ctx) {
 async getProductsForUser(ctx) {
   try {
     const filters = { deletedAt: null }
-
+ 
     // Step 1: Count total
     const total = await strapi.entityService.count('api::product.product', {
       filters,
@@ -152,13 +152,13 @@ async getProductsForUser(ctx) {
   }
 },
 
-
-
   async addProduct(ctx) {
     try {
       const decoded = verifyToken(ctx);
+      if (decoded.type !== 'admin') {
+        return ctx.unauthorized('Only retailers can add products');
+      }
       const data = { ...ctx.request.body, final_price: ctx.request.body.price < ctx.request.body.discount ? ctx.request.body.price : ctx.request.body.price - ctx.request.body.discount };
-      data.retailer = decoded.id;
 
       const created = await strapi.entityService.create('api::product.product', data);
       return ctx.send(new ProductDTO(created));
@@ -166,6 +166,7 @@ async getProductsForUser(ctx) {
       return ctx.badRequest(err.message);
     }
   },
+  
   async addProductWithImages(ctx) {},
   async addManyProducts(ctx) {
     try {

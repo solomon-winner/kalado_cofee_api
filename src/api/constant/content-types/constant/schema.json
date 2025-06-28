@@ -19,6 +19,15 @@
     },
     "discount": {
       "type": "decimal"
+    },
+    "standard_shippment_cost": {
+      "type": "decimal"
+    },
+    "express_shippment_cost": {
+      "type": "decimal"
+    },
+    "next_day_shippment_cost": {
+      "type": "decimal"
     }
   }
 }

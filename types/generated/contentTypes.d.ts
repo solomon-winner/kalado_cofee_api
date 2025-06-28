@@ -511,14 +511,17 @@ export interface ApiConstantConstant extends Struct.CollectionTypeSchema {
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     discount: Schema.Attribute.Decimal;
+    express_shippment_cost: Schema.Attribute.Decimal;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
       'oneToMany',
       'api::constant.constant'
     > &
       Schema.Attribute.Private;
+    next_day_shippment_cost: Schema.Attribute.Decimal;
     publishedAt: Schema.Attribute.DateTime;
     shippment_cost: Schema.Attribute.Decimal;
+    standard_shippment_cost: Schema.Attribute.Decimal;
     tax: Schema.Attribute.Decimal;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &

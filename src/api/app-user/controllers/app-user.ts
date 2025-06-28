@@ -96,6 +96,7 @@ async getUser(ctx) {
     return ctx.unauthorized(err.message || 'Unauthorized');
   }
 },
+
 async getRetailers(ctx) {
 try {
   const decoded = verifyToken(ctx); // Ensure the user is authenticated

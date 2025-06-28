@@ -21,7 +21,7 @@ async addToCart(ctx) {
     const decoded = verifyToken(ctx); 
     const userId = decoded.id;
 
-    const { productId, quantity } = ctx.request.body; 
+    const { productId, quantity, method } = ctx.request.body; 
     // receive the retailer id from the client and check if it exists in the database and that product belongs to the retailer
     if (!productId || !quantity) {
       return ctx.badRequest("Product ID and quantity are required");
@@ -97,7 +97,23 @@ async addToCart(ctx) {
     if (!constant || constant.length === 0) {
       return ctx.badRequest("No constants found in the database");
     }
-    const shippingCost = constant[0].shippment_cost || null; // Default shipping cost
+
+    let shippingCost;    
+    if (method !== 'standard' && method !== 'express' && method !== 'next-day') {
+      return ctx.badRequest("Invalid shipping method");
+
+    }
+
+     else if (method === 'standard') {
+      const standardShippingCost = constant[0].standard_shippment_cost || 0;
+      shippingCost = standardShippingCost;
+    } else if (method === 'express') {
+      const expressShippingCost = constant[0].express_shippment_cost || 0;
+      shippingCost = expressShippingCost;
+    } else if (method === 'next-day') {
+      const nextDayShippingCost = constant[0].next_day_shippment_cost || 0;
+      shippingCost = nextDayShippingCost;
+    }
     const tax = constant[0].tax || 0.05; // Default tax rate
     const discount = product.discount || 0; // Default discount
     // Calculate final amount
