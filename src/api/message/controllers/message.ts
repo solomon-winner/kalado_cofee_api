@@ -3,6 +3,7 @@
  */
 
 import { factories } from '@strapi/strapi'
+import { verifyToken } from '../../../utils/dto/verify-token';
 
 export default factories.createCoreController('api::message.message', ({ strapi }) => ({
     async createMessage(ctx) {
@@ -28,6 +29,10 @@ export default factories.createCoreController('api::message.message', ({ strapi 
 },
 async getAllMessages(ctx) {
   try {
+    const decoded = verifyToken(ctx);
+    if (!decoded || decoded.type !== 'admin') {
+      return ctx.unauthorized("You are not authorized to view messages");
+    }
     const messages = await strapi.entityService.findMany("api::message.message", {
       sort: { createdAt: 'desc' },
     });

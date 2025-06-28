@@ -3,6 +3,7 @@
  */
 
 import { factories } from '@strapi/strapi'
+import { verifyToken } from '../../../utils/dto/verify-token';
 
 export default factories.createCoreController('api::blog.blog', ({ strapi }) => ({
 async getAllBlogs(ctx) {
@@ -36,6 +37,10 @@ async getBlogById(ctx) {
 },
 async createBlog(ctx) {
   try {
+        const decoded = verifyToken(ctx);
+    if (!decoded || decoded.type !== 'admin') {
+      return ctx.unauthorized("You are not authorized to create blogs");
+    }
     const { title, content, writer, image } = ctx.request.body;
 
     if (!title || !content || !writer) {
@@ -59,6 +64,10 @@ async createBlog(ctx) {
 },
 async updateBlog(ctx) {
   try {
+    const decoded = verifyToken(ctx);
+    if (!decoded || decoded.type !== 'admin') {
+      return ctx.unauthorized("You are not authorized to update blogs");
+    }
     const { id } = ctx.params;
     const { title, content, writer, image } = ctx.request.body;
 
@@ -83,6 +92,10 @@ async updateBlog(ctx) {
 }, 
 async deleteBlog(ctx) {
   try {
+    const decoded = verifyToken(ctx); 
+    if (!decoded || decoded.type !== 'admin') {
+      return ctx.unauthorized("You are not authorized to delete blogs");
+    }
     const { id } = ctx.params;
 
     const blog = await strapi.entityService.findOne("api::blog.blog", id);
