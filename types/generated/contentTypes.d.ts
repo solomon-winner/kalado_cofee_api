@@ -675,7 +675,8 @@ export interface ApiOrderOrder extends Struct.CollectionTypeSchema {
       'manyToOne',
       'api::shippment-address.shippment-address'
     >;
-    shippment_cost: Schema.Attribute.Decimal & Schema.Attribute.DefaultTo<0>;
+    shippment_method: Schema.Attribute.String &
+      Schema.Attribute.DefaultTo<'standard'>;
     status: Schema.Attribute.Enumeration<
       ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled']
     > &

@@ -13,6 +13,7 @@ const { CartItemDto, CartItemListDTO } = require('../../../utils/dto/cart/cartIt
 import { paypalClient } from "../../../utils/paymentConfiguration/paypal"; 
 import paypal from "@paypal/checkout-server-sdk";
 import { CalculatePrice } from '../../../utils/calculation/price';
+const { getShippingDetails } = require('../../../utils/calculation/shippment_cost');
 
 export default factories.createCoreController('api::order.order', ({ strapi }) => ({
   //this is the controller for the order API intended for managing orders and cart items for customers
@@ -21,8 +22,8 @@ async addToCart(ctx) {
     const decoded = verifyToken(ctx); 
     const userId = decoded.id;
 
-    const { productId, quantity, method } = ctx.request.body; 
-    // receive the retailer id from the client and check if it exists in the database and that product belongs to the retailer
+    const { productId, quantity, method } = ctx.request.body;
+
     if (!productId || !quantity) {
       return ctx.badRequest("Product ID and quantity are required");
     }
@@ -40,6 +41,7 @@ async addToCart(ctx) {
 
     const unitPrice = product.price;
     const totalPrice = unitPrice * quantity;
+
     // 2. Check for existing pending order
     let [pendingOrder] = await strapi.entityService.findMany("api::order.order", {
       filters: {
@@ -47,9 +49,9 @@ async addToCart(ctx) {
         status: 'pending',
       },
       populate: {
-        order_items: { populate: ['product'] } // important for checking duplicates
+        order_items: { populate: ['product'] }
       }
-    }) as any[]; // Type assertion to handle the case where no orders are found
+    }) as any[];
 
     // 3. If no pending order, create one
     if (!pendingOrder) {
@@ -59,14 +61,14 @@ async addToCart(ctx) {
           total_amount: totalPrice,
           orderedAt: new Date().toISOString(),
           status: "pending",
-          currency: "USD", // or your default currency
-          // final_amount: totalPrice + tax + shippingCost - discount,
+          currency: "USD",
           paymentStatus: "unpaid",
-          paymentMethod: "unpaid", // or your default payment method
+          paymentMethod: "unpaid",
+          shippment_method: method || "standard",
         }
       });
     } else {
-      // 4. Check if product already exists in order_items
+      // 4. Check for duplicate product
       const existingOrderItem = pendingOrder.order_items.find(
         (item) => item.product.id === productId
       );
@@ -83,7 +85,7 @@ async addToCart(ctx) {
       });
     }
 
-    // 6. Create the order item
+    // 6. Create order item
     const orderItem = await strapi.entityService.create("api::order-item.order-item", {
       data: {
         product: productId,
@@ -93,34 +95,23 @@ async addToCart(ctx) {
         totalPrice,
       }
     });
-    const constant  = await strapi.entityService.findMany("api::constant.constant");
-    if (!constant || constant.length === 0) {
-      return ctx.badRequest("No constants found in the database");
+
+    // 7. Fetch constants using util
+    let shippingCost, tax, discount;
+    try {
+      ({ shippingCost, tax, discount } = await getShippingDetails(method || 'standard'));
+    } catch (err) {
+      return ctx.badRequest(err.message);
     }
 
-    let shippingCost;    
-    if (method !== 'standard' && method !== 'express' && method !== 'next-day') {
-      return ctx.badRequest("Invalid shipping method");
+    // 8. Override discount if product has one
+    const appliedDiscount = product.discount ?? discount;
 
-    }
-
-     else if (method === 'standard') {
-      const standardShippingCost = constant[0].standard_shippment_cost || 0;
-      shippingCost = standardShippingCost;
-    } else if (method === 'express') {
-      const expressShippingCost = constant[0].express_shippment_cost || 0;
-      shippingCost = expressShippingCost;
-    } else if (method === 'next-day') {
-      const nextDayShippingCost = constant[0].next_day_shippment_cost || 0;
-      shippingCost = nextDayShippingCost;
-    }
-    const tax = constant[0].tax || 0.05; // Default tax rate
-    const discount = product.discount || 0; // Default discount
-    // Calculate final amount
-     const calculated = CalculatePrice(
+    // 9. Calculate final amount
+    const calculated = CalculatePrice(
       [{ price: orderItem.unitPrice, quantity: orderItem.quantity }],
       tax,
-      discount
+      appliedDiscount
     );
     const finalAmount = calculated.finalPrice;
 
@@ -131,7 +122,7 @@ async addToCart(ctx) {
       constants: {
         shippingCost,
         tax,
-        discount,
+        discount: appliedDiscount,
         finalAmount,
       }
     });
@@ -204,22 +195,32 @@ async getCartItems(ctx) {
           populate: ['product'],
         }
       }
-    }) as any[]; // Type assertion to handle the case where no orders are found
+    }) as any[];
 
-    if (!pendingOrder) return ctx.send({ message: "No items in cart", cart: [] });
-    const [constants] = await strapi.entityService.findMany("api::constant.constant");
-    if (!constants) {
-      return ctx.badRequest("No constants found in the database");
+    if (!pendingOrder) {
+      return ctx.send({ message: "No items in cart", cart: [] });
     }
-    const shippingCost = constants.shippment_cost || null; // Default shipping cost
-    const tax = constants.tax || 0.05; // Default tax rate
-    const discount = constants.discount || 0; // Default discount
+
+    const method = pendingOrder.shippment_method || 'standard';
+
+    let shippingCost, tax, discount;
+
+    try {
+      ({ shippingCost, tax, discount } = await getShippingDetails(method));
+    } catch (err) {
+      return ctx.badRequest(err.message); // Handles missing constants or invalid method
+    }
+
     // Calculate final amount
     const calculated = CalculatePrice(
-      pendingOrder.order_items.map(item => ({ price: item.final_price, quantity: item.quantity })),
+      pendingOrder.order_items.map(item => ({
+        price: item.final_price,
+        quantity: item.quantity
+      })),
       tax,
       discount
     );
+
     const finalAmount = calculated.finalPrice;
 
     return ctx.send({
@@ -228,6 +229,8 @@ async getCartItems(ctx) {
       totalAmount: finalAmount,
       shippingCost,
       tax,
+      discount,
+      method,
     });
 
   } catch (err) {
@@ -333,178 +336,178 @@ async removeItemFromCart(ctx) {
   }
 },
 
-async checkoutOrder(ctx) {
-  try {
-    const decoded = verifyToken(ctx);
-    const userId = decoded.id;
-    const { orderId } = ctx.params;
+// async checkoutOrder(ctx) {
+//   try {
+//     const decoded = verifyToken(ctx);
+//     const userId = decoded.id;
+//     const { orderId } = ctx.params;
 
-    // 1. Fetch order and relationships
-    const order = await strapi.entityService.findOne("api::order.order", orderId, {
-      populate: ['order_items', 'customer', 'shippment_address'],
-    }) as any;
-    const [constants] = await strapi.entityService.findMany("api::constant.constant");
-    if (!order || order.customer.id !== userId || order.status !== 'pending') {
-      return ctx.badRequest("Invalid order");
-    }
+//     // 1. Fetch order and relationships
+//     const order = await strapi.entityService.findOne("api::order.order", orderId, {
+//       populate: ['order_items', 'customer', 'shippment_address'],
+//     }) as any;
+//     const [constants] = await strapi.entityService.findMany("api::constant.constant");
+//     if (!order || order.customer.id !== userId || order.status !== 'pending') {
+//       return ctx.badRequest("Invalid order");
+//     }
 
-    // 2. Prepare data for calculation
-    const itemsForCalc = order.order_items.map((item) => ({
-      price: Number(item.unitPrice),
-      quantity: Number(item.quantity),
-    }));
+//     // 2. Prepare data for calculation
+//     const itemsForCalc = order.order_items.map((item) => ({
+//       price: Number(item.unitPrice),
+//       quantity: Number(item.quantity),
+//     }));
 
-    const shippingCost = constants?.shippment_cost || 50;
-    const taxRate = constants?.tax || 0.05;
-    const discountRate = constants?.discount || 0; // e.g., 0.10 for 10% discount
+//     const shippingCost = constants?.shippment_cost || 50;
+//     const taxRate = constants?.tax || 0.05;
+//     const discountRate = constants?.discount || 0; // e.g., 0.10 for 10% discount
 
-    // 3. Calculate pricing using utility
-    const { totalPrice: baseTotal, tax, finalPrice: subtotalPlusTax } = CalculatePrice(
-      itemsForCalc,
-      taxRate,
-      discountRate
-    );
+//     // 3. Calculate pricing using utility
+//     const { totalPrice: baseTotal, tax, finalPrice: subtotalPlusTax } = CalculatePrice(
+//       itemsForCalc,
+//       taxRate,
+//       discountRate
+//     );
 
-    const finalTotal = subtotalPlusTax + shippingCost;
+//     const finalTotal = subtotalPlusTax + shippingCost;
 
-    // 4. Update the order in DB
-    await strapi.entityService.update("api::order.order", orderId, {
-      data: {
-        total_amount: baseTotal,
-        tax_amount: tax,
-        shippment_cost: shippingCost,
-        discount_amount: baseTotal * discountRate,
-        final_amount: finalTotal,
-      }
-    });
+//     // 4. Update the order in DB
+//     await strapi.entityService.update("api::order.order", orderId, {
+//       data: {
+//         total_amount: baseTotal,
+//         tax_amount: tax,
+//         shippment_cost: shippingCost,
+//         discount_amount: baseTotal * discountRate,
+//         final_amount: finalTotal,
+//       }
+//     });
 
-    // 5. Create PayPal order
-    const request = new paypal.orders.OrdersCreateRequest();
-    request.prefer("return=representation");
-    request.requestBody({
-      intent: "CAPTURE",
-      purchase_units: [{
-        reference_id: `ORDER-${order.id}`,
-        amount: {
-          currency_code: "USD",
-          value: finalTotal.toFixed(2),
-          breakdown: {
-            item_total: {
-              currency_code: "USD",
-              value: baseTotal.toFixed(2),
-            },
-            shipping: {
-              currency_code: "USD",
-              value: shippingCost.toFixed(2),
-            },
-            tax_total: {
-              currency_code: "USD",
-              value: tax.toFixed(2),
-            },
-            discount: {
-              currency_code: "USD",
-              value: (baseTotal * discountRate).toFixed(2),
-            }
-          }
-        }
-      }],
-      application_context: {
-        brand_name: "Kalado Coffee",
-        landing_page: "LOGIN",
-        user_action: "PAY_NOW",
-        return_url: "https://kalado-coffee.vercel.app/paypal-success",
-        cancel_url: "https://kalado-coffee.vercel.app/paypal-cancel"
-      }
-    });
+//     // 5. Create PayPal order
+//     const request = new paypal.orders.OrdersCreateRequest();
+//     request.prefer("return=representation");
+//     request.requestBody({
+//       intent: "CAPTURE",
+//       purchase_units: [{
+//         reference_id: `ORDER-${order.id}`,
+//         amount: {
+//           currency_code: "USD",
+//           value: finalTotal.toFixed(2),
+//           breakdown: {
+//             item_total: {
+//               currency_code: "USD",
+//               value: baseTotal.toFixed(2),
+//             },
+//             shipping: {
+//               currency_code: "USD",
+//               value: shippingCost.toFixed(2),
+//             },
+//             tax_total: {
+//               currency_code: "USD",
+//               value: tax.toFixed(2),
+//             },
+//             discount: {
+//               currency_code: "USD",
+//               value: (baseTotal * discountRate).toFixed(2),
+//             }
+//           }
+//         }
+//       }],
+//       application_context: {
+//         brand_name: "Kalado Coffee",
+//         landing_page: "LOGIN",
+//         user_action: "PAY_NOW",
+//         return_url: "https://kalado-coffee.vercel.app/paypal-success",
+//         cancel_url: "https://kalado-coffee.vercel.app/paypal-cancel"
+//       }
+//     });
 
-    const paypalRes = await paypalClient().execute(request);
+//     const paypalRes = await paypalClient().execute(request);
 
-    // 6. Send response
-    const approvalUrl = paypalRes.result.links.find(link => link.rel === "approve")?.href;
+//     // 6. Send response
+//     const approvalUrl = paypalRes.result.links.find(link => link.rel === "approve")?.href;
 
-    return ctx.send({
-      message: "PayPal order created",
-      orderId: order.id,
-      summary: {
-        baseTotal: Number(baseTotal.toFixed(2)),
-        shippingCost,
-        tax: Number(tax.toFixed(2)),
-        discount: Number((baseTotal * discountRate).toFixed(2)),
-        finalTotal: Number(finalTotal.toFixed(2)),
-      },
-      paypalOrderId: paypalRes.result.id,
-      approvalUrl
-    });
+//     return ctx.send({
+//       message: "PayPal order created",
+//       orderId: order.id,
+//       summary: {
+//         baseTotal: Number(baseTotal.toFixed(2)),
+//         shippingCost,
+//         tax: Number(tax.toFixed(2)),
+//         discount: Number((baseTotal * discountRate).toFixed(2)),
+//         finalTotal: Number(finalTotal.toFixed(2)),
+//       },
+//       paypalOrderId: paypalRes.result.id,
+//       approvalUrl
+//     });
 
-  } catch (err) {
-    console.error("Checkout error:", err);
-    return ctx.badRequest("Checkout failed");
-  }
-},
+//   } catch (err) {
+//     console.error("Checkout error:", err);
+//     return ctx.badRequest("Checkout failed");
+//   }
+// },
 
-async capturePayPalOrder(ctx) {
-  try {
-    const decoded = verifyToken(ctx);
-    const userId = decoded.id;
-    const { paypalOrderId } = ctx.params;
+// async capturePayPalOrder(ctx) {
+//   try {
+//     const decoded = verifyToken(ctx);
+//     const userId = decoded.id;
+//     const { paypalOrderId } = ctx.params;
 
-    // 1. Capture PayPal order
-    const request = new paypal.orders.OrdersCaptureRequest(paypalOrderId);
-    request.requestBody({});
-    const capture = await paypalClient().execute(request);
+//     // 1. Capture PayPal order
+//     const request = new paypal.orders.OrdersCaptureRequest(paypalOrderId);
+//     request.requestBody({});
+//     const capture = await paypalClient().execute(request);
 
-    const status = capture.result.status;
-    const paypalCaptureId = capture.result.id;
-    const capturedOrder = capture.result.purchase_units[0];
-    const referenceId = capturedOrder.reference_id;
-    const strapiOrderId = referenceId?.split("ORDER-")[1];
+//     const status = capture.result.status;
+//     const paypalCaptureId = capture.result.id;
+//     const capturedOrder = capture.result.purchase_units[0];
+//     const referenceId = capturedOrder.reference_id;
+//     const strapiOrderId = referenceId?.split("ORDER-")[1];
 
-    if (!strapiOrderId) {
-      return ctx.badRequest("Invalid reference ID");
-    }
+//     if (!strapiOrderId) {
+//       return ctx.badRequest("Invalid reference ID");
+//     }
 
-    // 2. Update order
-    const updatedOrder = await strapi.entityService.update("api::order.order", strapiOrderId, {
-      data: {
-        status: status === "COMPLETED" ? "confirmed" : "pending",
-        paymentStatus: status === "COMPLETED" ? "paid" : "unpaid",
-        paidAt: status === "COMPLETED" ? new Date().toISOString() : null,
-        paymentMethod: "paypal",
-      }
-    });
+//     // 2. Update order
+//     const updatedOrder = await strapi.entityService.update("api::order.order", strapiOrderId, {
+//       data: {
+//         status: status === "COMPLETED" ? "confirmed" : "pending",
+//         paymentStatus: status === "COMPLETED" ? "paid" : "unpaid",
+//         paidAt: status === "COMPLETED" ? new Date().toISOString() : null,
+//         paymentMethod: "paypal",
+//       }
+//     });
 
-    if (!updatedOrder) {
-      return ctx.badRequest("Failed to update order");
-    }
+//     if (!updatedOrder) {
+//       return ctx.badRequest("Failed to update order");
+//     }
 
-    // 3. Create purchase history record
-    const purchaseHistory = await strapi.entityService.create("api::purchase-history.purchase-history", {
-      data: {
-        order: updatedOrder.id,
-        customer: userId,
-        totalPrice: updatedOrder.final_amount || 0,
-        tax: updatedOrder.tax_amount || 0,
-        shippment_cost: updatedOrder.shippment_cost || 0,
-        discount_amount: updatedOrder.discount_amount || 0,
-        payment_method: "paypal",
-        paypalCaptureId,
-        paidAt: new Date().toISOString()
-      }
-    });
+//     // 3. Create purchase history record
+//     const purchaseHistory = await strapi.entityService.create("api::purchase-history.purchase-history", {
+//       data: {
+//         order: updatedOrder.id,
+//         customer: userId,
+//         totalPrice: updatedOrder.final_amount || 0,
+//         tax: updatedOrder.tax_amount || 0,
+//         shippment_cost: updatedOrder.shippment_cost || 0,
+//         discount_amount: updatedOrder.discount_amount || 0,
+//         payment_method: "paypal",
+//         paypalCaptureId,
+//         paidAt: new Date().toISOString()
+//       }
+//     });
 
-    return ctx.send({
-      message: "Payment captured and history saved",
-      paypalStatus: status,
-      order: updatedOrder,
-      purchaseHistory,
-    });
+//     return ctx.send({
+//       message: "Payment captured and history saved",
+//       paypalStatus: status,
+//       order: updatedOrder,
+//       purchaseHistory,
+//     });
 
-  } catch (err) {
-    console.error("PayPal capture error:", err);
-    return ctx.badRequest("Payment capture failed");
-  }
-}
-,
+//   } catch (err) {
+//     console.error("PayPal capture error:", err);
+//     return ctx.badRequest("Payment capture failed");
+//   }
+// }
+// ,
 // this is the controller for the order API intended for managing orders and cart items for retailers
 
 // async getRetailerOrderDetails(ctx) {},

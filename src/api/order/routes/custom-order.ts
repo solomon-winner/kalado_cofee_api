@@ -40,14 +40,14 @@ export default {
                 auth: false,
             }
         },
-        {
-            method: 'POST',
-            path: '/order/cart/checkout',
-            handler: 'order.checkoutOrder',
-            config: {
-                auth: false,
-            }
-        },
+        // {
+        //     method: 'POST',
+        //     path: '/order/cart/checkout',
+        //     handler: 'order.checkoutOrder',
+        //     config: {
+        //         auth: false,
+        //     }
+        // },
         // Custom route to get for retailers
         {
             method: 'PUT',

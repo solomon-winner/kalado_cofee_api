@@ -90,9 +90,14 @@
       "type": "decimal",
       "default": 0
     },
-    "shippment_cost": {
-      "type": "decimal",
-      "default": 0
+    "shippment_method": {
+      "type": "string",
+      "enum": [
+        "standard",
+        "express",
+        "next-day"
+      ],
+      "default": "standard"
     },
     "discount_amount": {
       "type": "decimal",
