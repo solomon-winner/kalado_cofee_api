@@ -102,7 +102,9 @@ try {
   if (!decoded) {
     return ctx.unauthorized('Invalid token');
   }
-
+  if (decoded.type !== "admin") {
+    return ctx.unauthorized('Only admins can access this endpoint');
+  }
   const retailers = await strapi.db.query('api::app-user.app-user').findMany({
     where: { type: 'retailer', deletedAt: null },
     select: ['id', 'name'],

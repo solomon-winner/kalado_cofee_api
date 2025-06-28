@@ -77,16 +77,12 @@ async getOrderItemsForProduct(ctx) {
     return ctx.badRequest(err.message);
   }
 },
-async getProducts(ctx) {
+
+async getProductsForRetailer(ctx) {
   try {
     const decoded = verifyToken(ctx);
-    const user = await strapi.db.query('api::app-user.app-user').findOne({
-      where: { id: decoded.id, deletedAt: null },
-    });
 
-    const filters = user?.type === 'customer'
-      ? { deletedAt: null }
-      : { retailer: decoded.id };
+    const filters = { retailer: decoded.id, deletedAt: null };
 
     // Step 1: Count total
     const total = await strapi.entityService.count('api::product.product', {
@@ -119,6 +115,44 @@ async getProducts(ctx) {
     return ctx.badRequest(err.message);
   }
 },
+
+async getProductsForUser(ctx) {
+  try {
+    const filters = { deletedAt: null }
+
+    // Step 1: Count total
+    const total = await strapi.entityService.count('api::product.product', {
+      filters,
+    });
+
+    // Step 2: Use your helper to get meta and pagination
+    const pagination  = getPagination(ctx, total);
+
+    // Step 3: Fetch paginated data
+    const products = await strapi.entityService.findMany('api::product.product', {
+      filters,
+      sort: { createdAt: 'desc' },
+      pagination: { page: pagination.page, pageSize: pagination.pageSize },
+      populate: {
+        images: true,
+        retailer: {
+          fields: ['id', 'name'],
+        },
+      },
+      fields: ['id', 'name', 'price', 'quantity', 'discount', 'isPopular'],
+    });
+
+    return ctx.send({
+      data: ProductListDTO(products),
+      meta: { pagination }
+    });
+
+  } catch (err) {
+    return ctx.badRequest(err.message);
+  }
+},
+
+
 
   async addProduct(ctx) {
     try {

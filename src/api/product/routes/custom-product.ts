@@ -10,6 +10,14 @@ export default {
         },
         {
             method: 'GET',
+            path: '/products/',
+            handler: 'product.getProductsForUser',
+            config: {
+                auth: false,
+            }
+        },
+        {
+            method: 'GET',
             path: '/products/order/:productId',
             handler: 'product.getOrderItemsForProduct',
             config: {
@@ -50,8 +58,8 @@ export default {
         },
         { 
             method: 'GET', 
-            path: '/products', 
-            handler: 'product.getProducts',
+            path: '/products/retailer', 
+            handler: 'product.getProductsForRetailer',
             config: {
                 auth: false,
             } 
