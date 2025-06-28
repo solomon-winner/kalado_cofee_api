@@ -102,9 +102,7 @@ try {
   if (!decoded) {
     return ctx.unauthorized('Invalid token');
   }
-  if (decoded.type !== 'admin') {
-    return ctx.unauthorized('You are not authorized to access this resource');
-  }
+
   const retailers = await strapi.db.query('api::app-user.app-user').findMany({
     where: { type: 'retailer', deletedAt: null },
     select: ['id', 'name'],
