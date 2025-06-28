@@ -9,6 +9,7 @@ export const appUserDTO = (user) => {
     type: user.type,
     business_name: user.business_name || null,
     createdAt: user.createdAt,
+    location: user.location || null,
     // Include any other necessary public fields
   };
 };

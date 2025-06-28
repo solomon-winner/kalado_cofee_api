@@ -40,6 +40,9 @@
         "admin"
       ]
     },
+    "location": {
+      "type": "string"
+    },
     "products": {
       "type": "relation",
       "relation": "oneToMany",

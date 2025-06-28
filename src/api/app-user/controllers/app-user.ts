@@ -13,7 +13,7 @@ import sendEmailService from '../../my-service/controllers/email-service';
 export default factories.createCoreController('api::app-user.app-user', ({ strapi }) => ({
 
   async register(ctx) {
-    const { email, password, name, phone,type, business_name } = ctx.request.body;
+    const { email, password, name, phone,type, business_name, location } = ctx.request.body;
 
     if (!email || !password) {
       return ctx.badRequest('Email and password are required');
@@ -35,12 +35,14 @@ export default factories.createCoreController('api::app-user.app-user', ({ strap
       name: any;
       type: any;
       business_name?: any;
+      location?: any;
     } = {
       email,
       phone,
       password,
       name,
       type,
+      location,
     }
     if (type === 'business' && !business_name) {
       return ctx.badRequest('Business name is required for business accounts');
