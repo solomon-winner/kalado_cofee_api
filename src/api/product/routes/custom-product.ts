@@ -1,5 +1,13 @@
 export default {
     routes: [
+            {
+            method: 'GET',
+            path: '/products/',
+            handler: 'product.getProductsForUser',
+            config: {
+                auth: false,
+            }
+        },
         { 
             method: 'GET', 
             path: '/products/filter', 
@@ -8,14 +16,7 @@ export default {
                 auth: false,
             }
         },
-        {
-            method: 'GET',
-            path: '/products/',
-            handler: 'product.getProductsForUser',
-            config: {
-                auth: false,
-            }
-        },
+
         {
             method: 'GET',
             path: '/products/order/:productId',

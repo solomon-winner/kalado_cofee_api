@@ -7,6 +7,8 @@ export const appUserDTO = (user) => {
     email: user.email,
     phone: user.phone,
     type: user.type,
+    business_name: user.business_name || null,
+    createdAt: user.createdAt,
     // Include any other necessary public fields
   };
 };
