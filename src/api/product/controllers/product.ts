@@ -359,7 +359,6 @@ async deleteManyProducts(ctx) {
   //this for the customer to filter products by retailer
   async getProductsByRetailer(ctx) {
     try {
-      const decoded = verifyToken(ctx);
       const { retailerId } = ctx.params;
 
 
