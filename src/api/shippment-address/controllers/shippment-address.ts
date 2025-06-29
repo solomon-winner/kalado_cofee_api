@@ -4,6 +4,7 @@
 
 import { factories } from '@strapi/strapi'
 import { verifyToken } from '../../../utils/dto/verify-token';
+import { getPagination } from '../../../utils/pagination/getPagination';
 const { ShippmentAddressDTO, ShippmentAddressListDTO } = require('../../../utils/dto/shippment-address/shippmentAddress');
 
 export default factories.createCoreController('api::shippment-address.shippment-address', ({ strapi }) => ({
@@ -39,6 +40,7 @@ async getAddresses(ctx) {
   try {
     const decoded = verifyToken(ctx);
     const userId = decoded.id;
+    
 
     const addresses = await strapi.entityService.findMany("api::shippment-address.shippment-address", {
       filters: {
