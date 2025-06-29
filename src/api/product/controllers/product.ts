@@ -30,7 +30,6 @@ export default {
   },
   async getProductDetail(ctx) {
     try {
-      const decoded = verifyToken(ctx);
       const { id } = ctx.params;
 
       const product = await strapi.db.query('api::product.product').findOne({
