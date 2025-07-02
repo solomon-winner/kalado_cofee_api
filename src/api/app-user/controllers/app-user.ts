@@ -9,6 +9,7 @@ import { verifyToken } from '../../../utils/dto/verify-token';
 import { generateToken } from '../../../utils/dto/generate-token';
 import crypto from 'crypto';
 import sendEmailService from '../../my-service/controllers/email-service';
+import { getPagination } from '../../../utils/pagination/getPagination';
 
 export default factories.createCoreController('api::app-user.app-user', ({ strapi }) => ({
 
@@ -108,11 +109,23 @@ try {
   if (decoded.type !== "admin") {
     return ctx.unauthorized('Only admins can access this endpoint');
   }
+    const total = await strapi.entityService.count('api::app-user.app-user', {
+        filters: { type: 'retailer', deletedAt: null },
+      });
+  
+      // Step 2: Use your helper to get meta and pagination
+      const pagination  = getPagination(ctx, total);
+      const start = (pagination.page - 1) * pagination.pageSize;
+      const limit = pagination.pageSize;
+  
   const retailers = await strapi.db.query('api::app-user.app-user').findMany({
+    offset: start,
+    limit,
+    orderBy: { createdAt: 'desc' },
     where: { type: 'retailer', deletedAt: null },
     select: ['id', 'name'],
   });
-  return ctx.send({ retailers: retailers.map(appUserDTO) });
+  return ctx.send({ retailers: retailers.map(appUserDTO), pagination });
   
 } catch (error) {
   strapi.log.error('Get retailers error:', error);

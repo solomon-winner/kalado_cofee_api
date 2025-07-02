@@ -148,9 +148,20 @@ async getMyOrders(ctx) {
     if (status) {
       filters.status = status;
     }
+      const total = await strapi.entityService.count('api::order.order', {
+          filters,
+        });
+    
+        // Step 2: Use your helper to get meta and pagination
+        const pagination  = getPagination(ctx, total);
+    
+           const start = (pagination.page - 1) * pagination.pageSize;
+    const limit = pagination.pageSize;
 
     const orders = await strapi.entityService.findMany("api::order.order", {
       filters,
+      start,
+      limit,
       populate: {
         order_items: {
           populate: ['product'],
@@ -162,13 +173,8 @@ async getMyOrders(ctx) {
     orders.forEach(order => {
       (order as { order_items?: any[] }).order_items = (order as any).order_items?.length || 0;
     });
-      const total = await strapi.entityService.count('api::order.order', {
-          filters,
-        });
-    
-        // Step 2: Use your helper to get meta and pagination
-        const pagination  = getPagination(ctx, total);
-    
+
+
     return ctx.send({
       message: 'Orders retrieved successfully',
       orders: OrderListDTO(orders),
@@ -678,22 +684,27 @@ async getRetailerOrders(ctx) {
       retailer: userId,
       ...(status && { status }), // Only filter by status if it's provided
     };
-
-    const orders = await strapi.entityService.findMany("api::order.order", {
-      filters,
-      populate: {
-        order_items: {
-          populate: ['product'],
-        },
-      },
-    });
       const total = await strapi.entityService.count('api::order.order', {
           filters,
         });
     
         // Step 2: Use your helper to get meta and pagination
         const pagination  = getPagination(ctx, total);
-    
+    const start = (pagination.page - 1) * pagination.pageSize;
+    const limit = pagination.pageSize;
+
+    const orders = await strapi.entityService.findMany("api::order.order", {
+      filters,
+      start,
+      limit,
+      sort: [{ orderedAt: 'desc' }],
+      populate: {
+        order_items: {
+          populate: ['product'],
+        },
+      },
+    });
+
     return ctx.send({
       message: 'Retailer orders retrieved successfully',
       meta: { pagination },

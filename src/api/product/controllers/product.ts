@@ -91,12 +91,15 @@ async getProductsForRetailer(ctx) {
 
     // Step 2: Use your helper to get meta and pagination
     const pagination  = getPagination(ctx, total);
+    const start = (pagination.page - 1) * pagination.pageSize;
+    const limit = pagination.pageSize;
 
     // Step 3: Fetch paginated data
     const products = await strapi.entityService.findMany('api::product.product', {
       filters,
       sort: { createdAt: 'desc' },
-      pagination: { page: pagination.page, pageSize: pagination.pageSize },
+      start,
+      limit,
       populate: {
         images: true,
         retailer: {
