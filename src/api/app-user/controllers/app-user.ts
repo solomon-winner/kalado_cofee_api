@@ -103,6 +103,7 @@ async getUser(ctx) {
 async getRetailers(ctx) {
 try {
   const decoded = verifyToken(ctx); // Ensure the user is authenticated
+  
   if (!decoded) {
     return ctx.unauthorized('Invalid token');
   }
