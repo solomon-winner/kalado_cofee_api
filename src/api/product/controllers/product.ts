@@ -196,48 +196,36 @@ async addProduct(ctx) {
     return ctx.badRequest(err.message || 'Failed to create product');
   }
 },
+async addImagesToProduct(ctx) {
+  const { id } = ctx.params;
+  const { files } = ctx.request;
 
-  async addProductWithImages(ctx) {
-    const decoded = verifyToken(ctx);
-    if (decoded.type !== 'admin') {
-      return ctx.unauthorized('Only admins can add products with images');
-    }
-    const { files, body } = ctx.request;
-
-    try {
-      // Parse JSON stringified body fields if needed
-      const data = typeof body === 'string' ? JSON.parse(body) : body;
-
-      // Upload files and get uploaded file IDs
-      const imageFiles = files?.images;
-      let imageIds = [];
-
-      if (imageFiles) {
-        const uploadService = strapi.plugin('upload').service('upload');
-        const uploadedFiles = await uploadService.uploadMany(
-          Array.isArray(imageFiles) ? imageFiles : [imageFiles],
-          {}
-        );
-
-        imageIds = uploadedFiles.map(file => file.id);
-      }
-
-      // Assign uploaded image IDs to the product's image field
-      const product = await strapi.entityService.create('api::product.product', {
-        data: {
-          ...data,
-          images: imageIds,
-        },
-        populate: ['images'],
-      });
-
-      return ctx.send(product);
-    } catch (err) {
-      console.error('Error creating product with images:', err);
-      ctx.throw(500, 'Internal Server Error');
+  try {
+    if (!files || !files.images) {
+      return ctx.badRequest('No images provided');
     }
 
-  },
+    const uploadService = strapi.plugin('upload').service('upload');
+
+    const imageFiles = Array.isArray(files.images) ? files.images : [files.images];
+
+    const uploaded = await uploadService.uploadMany(imageFiles, {});
+
+    const imageIds = uploaded.map(file => file.id);
+
+    const updatedProduct = await strapi.entityService.update('api::product.product', id, {
+      data: {
+        images: imageIds,
+      },
+      populate: ['images'],
+    });
+
+    return ctx.send(updatedProduct);
+  } catch (err) {
+    console.error('Failed to add images to product:', err);
+    ctx.throw(500, 'Internal Server Error');
+  }
+},
   async addManyProducts(ctx) {
     try {
       const decoded = verifyToken(ctx);

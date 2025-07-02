@@ -19,6 +19,18 @@
       "type": "string",
       "required": true
     },
+    "email": {
+      "type": "email"
+    },
+    "country": {
+      "type": "string"
+    },
+    "phone": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string"
+    },
     "address1": {
       "type": "string",
       "required": true

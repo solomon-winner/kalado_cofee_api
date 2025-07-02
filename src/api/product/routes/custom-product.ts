@@ -75,8 +75,8 @@ export default {
         },
         {
             method: 'POST',
-            path: '/products/images',
-            handler: 'product.addProductWithImages',
+            path: '/products/:id/images',
+            handler: 'product.addImagesToProduct',
             config: {
                 auth: false,
             }

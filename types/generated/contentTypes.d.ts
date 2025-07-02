@@ -863,11 +863,13 @@ export interface ApiShippmentAddressShippmentAddress
     address1: Schema.Attribute.String & Schema.Attribute.Required;
     address2: Schema.Attribute.String;
     city: Schema.Attribute.String;
+    country: Schema.Attribute.String;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     customer: Schema.Attribute.Relation<'manyToOne', 'api::app-user.app-user'>;
     deletedAt: Schema.Attribute.DateTime;
+    email: Schema.Attribute.Email;
     firstName: Schema.Attribute.String & Schema.Attribute.Required;
     isDefault: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
     isSaved: Schema.Attribute.Boolean & Schema.Attribute.DefaultTo<false>;
@@ -880,7 +882,9 @@ export interface ApiShippmentAddressShippmentAddress
       Schema.Attribute.Private;
     method: Schema.Attribute.Enumeration<['standard', 'express', 'nextday']> &
       Schema.Attribute.DefaultTo<'standard'>;
+    phone: Schema.Attribute.String;
     publishedAt: Schema.Attribute.DateTime;
+    state: Schema.Attribute.String;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
