@@ -73,6 +73,14 @@ export default {
                 auth: false,
             }
         },
+        {
+            method: 'POST',
+            path: '/products/images',
+            handler: 'product.addProductWithImages',
+            config: {
+                auth: false,
+            }
+        },
         { 
             method: 'POST', 
             path: '/products/bulk', 
