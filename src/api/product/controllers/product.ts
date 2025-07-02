@@ -2,6 +2,7 @@ import { verifyToken } from '../../../utils/dto/verify-token';
 const { ProductDTO, ProductListDTO } = require('../../../utils/dto/product/productDto');
 const { OrderItemListDTO } = require('../../../utils/dto/order/orderItem');
 import  { getPagination } from '../../../utils/pagination/getPagination';
+const qs = require('qs');
 
 export default {
   // the two controllers below are the same but for different users
@@ -126,12 +127,15 @@ async getProductsForUser(ctx) {
 
     // Step 2: Use your helper to get meta and pagination
     const pagination  = getPagination(ctx, total);
+    const start = (pagination.page - 1) * pagination.pageSize;
+    const limit = pagination.pageSize;
 
     // Step 3: Fetch paginated data
     const products = await strapi.entityService.findMany('api::product.product', {
       filters,
       sort: { createdAt: 'desc' },
-      pagination: { page: pagination.page, pageSize: pagination.pageSize },
+      start,
+      limit,
       populate: {
         images: true,
         retailer: {
@@ -140,7 +144,7 @@ async getProductsForUser(ctx) {
       },
       fields: ['id', 'name', 'price', 'quantity', 'discount', 'isPopular'],
     });
-
+    
     return ctx.send({
       data: ProductListDTO(products),
       meta: { pagination }

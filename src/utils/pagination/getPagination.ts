@@ -1,7 +1,6 @@
 export function getPagination(ctx, totalCount, defaultPageSize = 10) {
   const page = parseInt(ctx.query.page) || 1;
   const pageSize = parseInt(ctx.query.pageSize) || defaultPageSize;
-
   const pageCount = Math.ceil(totalCount / pageSize);
 
   return {
