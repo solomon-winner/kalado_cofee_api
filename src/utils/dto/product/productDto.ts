@@ -13,6 +13,7 @@ class ProductDTO {
   images: { id: number | null; url: string; name: string }[];
   category: string;
   tags: string[];
+  final_price: number;
 
   constructor(product: any = {}) {
     this.id = product.id ;
@@ -41,7 +42,8 @@ class ProductDTO {
       : [];
 
     this.category = product.category;
-    this.tags = product.tags
+    this.tags = product.tags;
+    this.final_price = product.final_price;
   }
 }
 

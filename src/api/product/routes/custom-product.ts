@@ -115,7 +115,7 @@ export default {
         },
         { 
             method: 'DELETE', 
-            path: '/products/retailer/all', 
+            path: '/products/retailer/all/:retailerId', 
             handler: 'product.deleteWholeProductsOfRetailer',
             config: {
                 auth: false,

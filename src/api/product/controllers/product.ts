@@ -247,15 +247,13 @@ async addImagesToProduct(ctx) {
 async updateProduct(ctx) {
   try {
     const decoded = verifyToken(ctx);
+
+    if(decoded.type !== 'admin') {
+       return ctx.unauthorized('Only admins can update products');     
+    }
     const { id } = ctx.params;
     const body = ctx.request.body;
 
-    const existing = await strapi.entityService.findOne('api::product.product', id, {
-      populate: { retailer: true }
-    }) as any;  // Temporary type workaround
-
-    if (!existing || existing.retailer.id !== decoded.id)
-      return ctx.unauthorized('Not allowed');
     if (body.price < body.discount) {
       body.final_price = body.price;
     } else {
@@ -274,14 +272,11 @@ async updateProduct(ctx) {
 async deleteOneProduct(ctx) {
   try {
     const decoded = verifyToken(ctx);
+
+    if(decoded.type !== 'admin') {
+       return ctx.unauthorized('you can not delete products');     
+    }
     const { id } = ctx.params;
-
-    const product = await strapi.entityService.findOne('api::product.product', id, {
-      populate: { retailer: true }
-    }) as any;  // Temporary type workaround
-
-    if (!product || product.retailer.id !== decoded.id)
-      return ctx.unauthorized('Not allowed');
 
     await strapi.entityService.delete('api::product.product', id);
     return ctx.send({ message: 'Deleted successfully' });
@@ -293,18 +288,17 @@ async deleteOneProduct(ctx) {
 async deleteManyProducts(ctx) {
   try {
     const decoded = verifyToken(ctx);
+
+    if(decoded.type !== 'admin') {
+      return ctx.unauthorized('Only admins can delete products');     
+    }
     const { ids } = ctx.request.body;
     const deletionResults = await Promise.all(
       ids.map(async (id) => {
-        const product = await strapi.entityService.findOne('api::product.product', id, {
-          populate: { retailer: true }
-        }) as any;  // Temporary type workaround
-
-        if (product?.retailer?.id === decoded.id) {
+// Temporary type workaround
           await strapi.entityService.delete('api::product.product', id);
           return true; // Mark successful deletion
-        }
-        return false;
+
       })
     );
 
@@ -320,9 +314,13 @@ async deleteManyProducts(ctx) {
   async deleteWholeProductsOfRetailer(ctx) {
     try {
       const decoded = verifyToken(ctx);
+      if (decoded.type !== 'admin') {
+        return ctx.unauthorized('Only admins can delete products');
+      } 
+      const retailer = ctx.params.retailerId;
 
       const products = await strapi.db.query('api::product.product').findMany({
-        where: { retailer: decoded.id },
+        where: { retailer: retailer },
         select: ['id'],
       });
 
