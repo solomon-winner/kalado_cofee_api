@@ -12,7 +12,7 @@ class OrderDTO {
   orderItems: {
     id: number | null;
     quantity: number;
-    price: number;
+    totalPrice: number;
     product: { id: number | null; name: string } | null;
   }[]| number;
   paymentStatus: string;
@@ -53,7 +53,7 @@ class OrderDTO {
       ? order.order_items.map((item: any) => ({
           id: item.id ?? null,
           quantity: item.quantity ?? 0,
-          price: item.price ?? 0,
+          price: item.totalPrice ?? 0,
           product: item.product
             ? {
                 id: item.product.id ?? null,

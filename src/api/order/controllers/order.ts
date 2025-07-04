@@ -170,10 +170,9 @@ async getMyOrders(ctx) {
       },
       sort: { orderedAt: 'desc' },
     });
-    orders.forEach(order => {
-      (order as { order_items?: any[] }).order_items = (order as any).order_items?.length || 0;
-    });
-
+    // orders.forEach(order => {
+    //   (order as { order_items?: any[] }).order_items = (order as any).order_items?.length || 0;
+    // });
 
     return ctx.send({
       message: 'Orders retrieved successfully',
