@@ -212,19 +212,24 @@ async addImagesToProduct(ctx) {
     const uploadService = strapi.plugin('upload').service('upload');
 
     const imageFiles = Array.isArray(files.images) ? files.images : [files.images];
-
-    const uploaded = await uploadService.uploadMany(imageFiles, {});
+    // Change uploadMany to upload, as the upload service's upload method can handle an array of files.
+    const uploaded = await uploadService.upload({ files: imageFiles, data: {} });
 
     const imageIds = uploaded.map(file => file.id);
-
     const updatedProduct = await strapi.entityService.update('api::product.product', id, {
       data: {
-        images: imageIds,
+        images: imageIds.map(id => ({ id })),
       },
-      populate: ['images'],
+      populate: ['images'], // Ensure images are populated in the response
     });
-
-    return ctx.send(updatedProduct);
+    const Images = (updatedProduct as any)?.images?.map((image: any) => ({
+      id: image.id,
+      url: image.url,
+      name: image.name,
+      alternativeText: image.alternativeText,
+    }));
+    // return ctx.send({data:ProductListDTO((updatedProduct))});
+        return ctx.send(Images);
   } catch (err) {
     console.error('Failed to add images to product:', err);
     ctx.throw(500, 'Internal Server Error');
