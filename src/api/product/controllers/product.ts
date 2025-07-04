@@ -145,8 +145,7 @@ async getProductsForUser(ctx) {
         retailer: {
           fields: ['id', 'name'],
         },
-      },
-      fields: ['id', 'name', 'price', 'quantity', 'discount', 'isPopular'],
+      }
     });
     
     return ctx.send({
