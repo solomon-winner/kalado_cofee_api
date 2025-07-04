@@ -201,6 +201,10 @@ async addProduct(ctx) {
   }
 },
 async addImagesToProduct(ctx) {
+  const decoded = verifyToken(ctx);
+  if (decoded.type !== 'admin') {
+    return ctx.unauthorized('Only admins can add images to products');
+  }
   const { id } = ctx.params;
   const { files } = ctx.request;
 
