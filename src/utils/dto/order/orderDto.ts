@@ -13,8 +13,8 @@ class OrderDTO {
     id: number | null;
     quantity: number;
     totalPrice: number;
-    product: { id: number | null; name: string } | null;
-  }[]| number;
+    product: { id: number | null; name: string; discount: number | null } | null;
+  }[] | number;
   paymentStatus: string;
   paymentMethod: string;
   paidAt: string | null;
@@ -58,6 +58,7 @@ class OrderDTO {
             ? {
                 id: item.product.id ?? null,
                 name: item.product.name ?? '',
+                discount: item.product.discount ?? null,
               }
             : null,
         }))
