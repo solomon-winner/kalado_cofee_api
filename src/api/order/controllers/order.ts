@@ -787,6 +787,7 @@ async getSalesReport(ctx) {
 async getTopRetailers(ctx) {
   try {
     // Step 1: Get all paid, not-deleted orders
+    console.log("Fetching paid orders...");
     const paidOrders = await strapi.db.query('api::order.order').findMany({
       where: {
         paymentStatus: 'paid',
@@ -796,7 +797,7 @@ async getTopRetailers(ctx) {
         retailer: true,
       }
     });
-
+      console.log("Paid Orders:", paidOrders.length);
     // Step 2: Aggregate revenue per retailer
     const revenueMap = new Map();
 

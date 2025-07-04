@@ -90,14 +90,7 @@ export default {
         auth: false,
       },
     },
-    {
-           method: 'GET',
-           path: '/order/:id',
-           handler: 'order.getOrderById',
-           config: {
-               auth: false,
-           }
-        },
+ 
         {
             method: 'GET',
             path: '/order/top-retailers',
@@ -105,6 +98,14 @@ export default {
             config: {
                 auth: false,
             }
-        }
+        },
+           {
+           method: 'GET',
+           path: '/order/:id',
+           handler: 'order.getOrderById',
+           config: {
+               auth: false,
+           }
+        },
     ]
 }
