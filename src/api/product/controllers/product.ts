@@ -42,7 +42,7 @@ export default {
       });
 
       if (!product) {
-        return ctx.notFound('Product not found or not owned by you');
+        return ctx.notFound('Product not found ');
       }
 
       return ctx.send( new ProductDTO(product));

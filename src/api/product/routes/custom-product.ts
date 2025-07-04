@@ -49,18 +49,19 @@ export default {
                 auth: false,
             }
         },
-        { 
-            method: 'GET', 
-            path: '/products/:id', 
-            handler: 'product.getProductForRetailer',
-            config: {
-                auth: false,
-            } 
-        },
+
         { 
             method: 'GET', 
             path: '/products/retailer', 
             handler: 'product.getProductsForRetailer',
+            config: {
+                auth: false,
+            } 
+        },
+                { 
+            method: 'GET', 
+            path: '/products/:id', 
+            handler: 'product.getProductForRetailer',
             config: {
                 auth: false,
             } 
