@@ -37,7 +37,8 @@ export default {
         where: {
           id
         },
-        populate: ['images'], // optionally populate relations
+        populate: ['images', 'retailer.id'], // optionally populate relations
+        
       });
 
       if (!product) {
@@ -165,7 +166,7 @@ async addProduct(ctx) {
       return ctx.unauthorized('Only admins can add products');
     }
 
-    const { name, price, quantity, description, discount = 0, retailer } = ctx.request.body;
+    const { name, price, quantity, description, discount = 0, retailer, category, tags, isPopular, properties } = ctx.request.body;
 
     if (!name || !price || !quantity || !description || !retailer) {
       return ctx.badRequest('Missing required fields');
@@ -185,7 +186,11 @@ async addProduct(ctx) {
       description,
       discount,
       final_price,
-      retailer
+      retailer,
+      category,
+      tags: Array.isArray(tags) ? tags : [tags], // Ensure tags is an
+      isPopular: !!isPopular, // Convert to boolean
+      properties: Array.isArray(properties)? properties: properties// Assuming properties is an empty object, adjust as needed
     };
 
     const created = await strapi.entityService.create('api::product.product', { data });
