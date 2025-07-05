@@ -68,12 +68,19 @@ export default {
                 {
             method: 'GET',
             path: '/order/order-stat',
-            handler: 'order.getOrderStatistics',
+            handler: 'order.getOrderStatisticsForRetailer',
             config: {
                 auth: false,
             }
         },
-        
+                  {
+            method: 'GET',
+            path: '/order/admin/order-statistics',
+            handler: 'order.getOrderStatisticsForAdmin',
+            config: {
+                auth: false,
+            }
+        },      
         {
            method: 'GET',
            path: '/order/report',

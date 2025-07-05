@@ -614,11 +614,11 @@ async getOrderById(ctx) {
   }
 },
 
-async getOrderStatistics(ctx) {
+async getOrderStatisticsForRetailer(ctx) {
   try {
     const decoded = verifyToken(ctx);
     const userId = decoded.id;
-
+    
     // Dates for this month
     const now = new Date();
     const thisMonthStart = startOfMonth(now).toISOString();
@@ -652,6 +652,66 @@ async getOrderStatistics(ctx) {
     const lastMonthOrders = await strapi.entityService.findMany("api::order.order", {
       filters: {
         retailer: userId,
+        orderedAt: { $gte: lastMonthStart, $lte: lastMonthEnd }
+      },
+      fields: ['status', 'total_amount']
+    });
+
+    const stats = {
+      thisMonth: computeStats(thisMonthOrders),
+      lastMonth: computeStats(lastMonthOrders),
+    };
+
+    return ctx.send({
+      message: 'Statistics retrieved successfully',
+      stats
+    });
+
+  } catch (err) {
+    console.error(err);
+    return ctx.badRequest("Failed to retrieve order statistics");
+  }
+},
+
+
+async getOrderStatisticsForAdmin(ctx) {
+  try {
+    const decoded = verifyToken(ctx);
+    
+    if(decoded.type !== 'admin') {
+      return ctx.unauthorized("You are not authorized to access this resource");
+    }
+    // Dates for this month
+    const now = new Date();
+    const thisMonthStart = startOfMonth(now).toISOString();
+    const thisMonthEnd = endOfMonth(now).toISOString();
+
+    // Dates for last month
+    const lastMonth = subMonths(now, 1);
+    const lastMonthStart = startOfMonth(lastMonth).toISOString();
+    const lastMonthEnd = endOfMonth(lastMonth).toISOString();
+
+    // Helper function to compute stats
+    const computeStats = (orders) => ({
+      totalOrders: orders.length,
+      activeOrders: orders.filter(o => ['pending', 'shipped'].includes(o.status)).length,
+      completedOrders: orders.filter(o => o.status === 'delivered').length,
+      totalSoldAmount: orders
+        .filter(o => o.status === 'delivered')
+        .reduce((sum, o) => sum + Number(o.total_amount), 0)
+    });
+
+    // Fetch orders for this month
+    const thisMonthOrders = await strapi.entityService.findMany("api::order.order", {
+      filters: {
+        orderedAt: { $gte: thisMonthStart, $lte: thisMonthEnd }
+      },
+      fields: ['status', 'total_amount']
+    });
+
+    // Fetch orders for last month
+    const lastMonthOrders = await strapi.entityService.findMany("api::order.order", {
+      filters: {
         orderedAt: { $gte: lastMonthStart, $lte: lastMonthEnd }
       },
       fields: ['status', 'total_amount']
