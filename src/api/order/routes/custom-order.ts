@@ -84,7 +84,24 @@ export default {
         {
            method: 'GET',
            path: '/order/report',
-           handler: 'order.getSalesReport',
+           handler: 'order.getSalesReportForRetailer',
+           config: {
+               auth: false,
+           }
+        },
+
+                {
+           method: 'GET',
+           path: '/order/report',
+           handler: 'order.getSalesReportForRetailer',
+           config: {
+               auth: false,
+           }
+        },
+                       {
+           method: 'GET',
+           path: '/order/admin/report',
+           handler: 'order.getSalesReportForAdmin',
            config: {
                auth: false,
            }

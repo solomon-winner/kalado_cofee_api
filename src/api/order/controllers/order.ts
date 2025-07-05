@@ -775,7 +775,7 @@ async getRetailerOrders(ctx) {
   }
 },
 
-async getSalesReport(ctx) {
+async getSalesReportForRetailer(ctx) {
   try {
     const decoded = verifyToken(ctx);
     const userId = decoded.id;
@@ -844,9 +844,83 @@ async getSalesReport(ctx) {
   }
 },
 
+async getSalesReportForAdmin(ctx) {
+  try {
+    const decoded = verifyToken(ctx);
+    if(decoded.type !== 'admin') {
+      return ctx.unauthorized("You are not authorized to access this resource");
+    }
+    const { type } = ctx.request.query; // 'weekly', 'monthly', 'yearly'
+
+    const now = new Date();
+    let startDate: string;
+    let endDate: string;
+
+    // const filters = {
+    //   retailer: userId,
+    //   status: 'delivered'
+    // };
+
+    if (type === 'weekly') {
+      startDate = startOfWeek(now, { weekStartsOn: 1 }).toISOString(); // Monday
+      endDate = endOfWeek(now, { weekStartsOn: 1 }).toISOString();     // Sunday
+    } else if (type === 'monthly') {
+      startDate = startOfYear(now).toISOString();
+      endDate = endOfYear(now).toISOString();
+    } else if (type === 'yearly') {
+      const sixYearsAgo = subYears(now, 6);
+      startDate = startOfYear(sixYearsAgo).toISOString();
+      endDate = endOfYear(now).toISOString();
+    } else {
+      return ctx.badRequest("Invalid report type. Use ?type=weekly|monthly|yearly");
+    }
+
+    const deliveredOrders = await strapi.entityService.findMany("api::order.order", {
+      filters: {
+         status: 'delivered',
+        orderedAt: { $gte: startDate, $lte: endDate }
+      },
+      fields: ['total_amount', 'orderedAt'],
+      sort: [{ orderedAt: 'asc' }]
+    });
+
+    // Grouping Logic
+    const groupedSales: Record<string, number> = {};
+
+    for (const order of deliveredOrders) {
+      const date = new Date(order.orderedAt);
+      let key: string;
+
+      if (type === 'weekly') {
+        key = format(date, 'EEEE'); // Monday, Tuesday, etc.
+      } else if (type === 'monthly') {
+        key = format(date, 'MMMM'); // January, February, etc.
+      } else if (type === 'yearly') {
+        key = format(date, 'yyyy'); // 2020, 2021, etc.
+      }
+
+      if (!groupedSales[key]) groupedSales[key] = 0;
+      groupedSales[key] += Number(order.total_amount);
+    }
+
+    return ctx.send({
+      message: `Sales report (${type})`,
+      report: groupedSales
+    });
+
+  } catch (err) {
+    console.error(err);
+    return ctx.badRequest("Failed to generate sales report");
+  }
+},
+
 async getTopRetailers(ctx) {
   try {
     // Step 1: Get all paid, not-deleted orders
+    const decoded = verifyToken(ctx);
+    if(decoded.type !== 'admin') {
+      return ctx.unauthorized("You are not authorized to access this resource");
+    }
     console.log("Fetching paid orders...");
     const paidOrders = await strapi.db.query('api::order.order').findMany({
       where: {
