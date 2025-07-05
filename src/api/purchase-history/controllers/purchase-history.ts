@@ -17,6 +17,7 @@ export default factories.createCoreController('api::purchase-history.purchase-hi
         const purchaseHistory = await strapi.entityService.findMany('api::purchase-history.purchase-history', {
             filters: { customer: id },
             populate: ['order'],
+            fields: ['id', 'createdAt', 'updatedAt', 'totalPrice', 'tax', 'shippment_cost', 'discount_amount','payment_method','paidAt'],
         });
     
         if (!purchaseHistory) {
